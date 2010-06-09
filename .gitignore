@@ -1,3 +1,7 @@
 /tarsnapper.wpr
 /BRANCH_TODO
 *.pyc
+
+/build/
+/dist/
+/tarsnapper.egg-info/

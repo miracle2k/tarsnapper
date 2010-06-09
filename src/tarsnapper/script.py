@@ -180,5 +180,9 @@ def main(argv):
             return 1
 
 
-if __name__ == '__main__':
+def run():
     sys.exit(main(sys.argv[1:]) or 0)
+
+
+if __name__ == '__main__':
+    run()

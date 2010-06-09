@@ -3,11 +3,18 @@ import argparse
 import subprocess
 import re
 from datetime import datetime, timedelta
+import logging
 
 import expire
 
 
-class CommandError(Exception):
+log = logging.getLogger()
+
+
+class ArgumentError(Exception):
+    pass
+
+class TarsnapError(Exception):
     pass
 
 
@@ -20,12 +27,12 @@ def call_tarsnap(arguments, options):
     call_with.extend(arguments)
     for key, value in options:
         call_with.extend(["--%s" % key, value])
-    print call_with
+    log.debug("Executing: %s" % " ".join(call_with))
     p = subprocess.Popen(call_with, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
     p.wait()
     if p.returncode != 0:
-        raise RuntimeError('tarsnap execution failed: %s', p.stderr.read())
+        raise TarsnapError('%s' % p.stderr.read())
     return p.stdout
 
 
@@ -64,19 +71,19 @@ def tarsnap_expire(deltas, regex, dateformat, options):
             continue
         date = parse_date(match.groupdict()['date'], dateformat)
         backups[backup_path] = date
+    log.info('%d backups are matching' % len(backups))
 
     # Determine which backups we need to get rid of, which to keep
-    print backups
     to_keep = expire.expire(backups, deltas)
-    print to_keep
+    log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
 
     # Delete all others
     for name, _ in backups.items():
         if not name in to_keep:
-            print "deleting", name
+            log.info('Deleting %s' % name)
             call_tarsnap(['-d', '-f', name], options)
         else:
-            print "keeping", name
+            log.debug('Keeping %s' % name)
 
 
 def timedelta_string(value):
@@ -91,9 +98,13 @@ def timedelta_string(value):
     raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % value)
 
 
-
-def main(argv):
+def parse_args(argv):
+    """Parse the command line.
+    """
     parser = argparse.ArgumentParser(description='Make backups.')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-q', action='store_true', dest='quiet', help='be quiet')
+    group.add_argument('-v', action='store_true', dest='verbose', help='be verbose')
     parser.add_argument('--expire', action='store_true',
                         help='expire only, don\'t make backups')
     parser.add_argument('--config', '-c', help='use the given config file')
@@ -112,19 +123,38 @@ def main(argv):
     # Do some argument validation that would be to much to ask for
     # argparse to handle internally.
     if not args.expire:
-        raise CommandError('--expire is required, for now')
+        raise ArgumentError('--expire is required, for now')
     if args.config:
-        raise CommandError('--config is not yet supported')
+        raise ArgumentError('--config is not yet supported')
     if args.config and (args.regex or args.dateformat or args.deltas):
-        raise CommandError('If --config is used, then --regex, --deltas and '
+        raise ArgumentError('If --config is used, then --regex, --deltas and '
                            '--dateformat are not available')
     if args.jobs and not args.config:
-        raise CommandError(('Specific jobs (%s) can only be given if a '
+        raise ArgumentError(('Specific jobs (%s) can only be given if a '
                             'config file is used') % args.jobs)
     if not args.config and not args.deltas or not args.regex:
-        raise CommandError('If no config file is used, both --regex and '
+        raise ArgumentError('If no config file is used, both --regex and '
                            '--deltas need to be given')
 
+    return args
+
+
+def main(argv):
+    try:
+        args = parse_args(argv)
+    except ArgumentError, e:
+        print "Error: %s" % e
+        return 1
+
+    # Setup logging
+    level = logging.WARNING if args.quiet else (
+        logging.DEBUG if args.verbose else logging.INFO)
+    ch = logging.StreamHandler()
+    ch.setFormatter(logging.Formatter("%(message)s"))
+    log.setLevel(level)
+    log.addHandler(ch)
+
+    # Build a list of jobs, process them.
     jobs = []
     if args.config:
         pass  # XXX
@@ -139,8 +169,12 @@ def main(argv):
             pass # XXX
 
         # Delete old backups
-        tarsnap_expire(job['deltas'], job['regex'], job['dateformat'],
-                       args.tarsnap_options)
+        try:
+            tarsnap_expire(job['deltas'], job['regex'], job['dateformat'],
+                           args.tarsnap_options)
+        except TarsnapError, e:
+            print "tarsnap execution failed:\n%s" % e
+            return 1
 
 
 if __name__ == '__main__':

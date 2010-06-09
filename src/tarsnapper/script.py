@@ -54,7 +54,7 @@ def parse_date(string, dateformat=None):
         raise ValueError('"%s" is not a supported date format' % string)
 
 
-def tarsnap_expire(deltas, regex, dateformat, options):
+def tarsnap_expire(deltas, regex, dateformat, options, dryrun=False):
     """Call into tarsnap, parse the list of archives, then proceed to
     actually have tarsnap delete those archives we need to expire
     according to the deltas defined.
@@ -81,7 +81,8 @@ def tarsnap_expire(deltas, regex, dateformat, options):
     for name, _ in backups.items():
         if not name in to_keep:
             log.info('Deleting %s' % name)
-            call_tarsnap(['-d', '-f', name], options)
+            if not dryrun:
+                call_tarsnap(['-d', '-f', name], options)
         else:
             log.debug('Keeping %s' % name)
 
@@ -108,6 +109,8 @@ def parse_args(argv):
     parser.add_argument('--expire', action='store_true',
                         help='expire only, don\'t make backups')
     parser.add_argument('--config', '-c', help='use the given config file')
+    parser.add_argument('--dry-run', help='only simulate, make no changes',
+                        dest='dryrun', action='store_true')
     parser.add_argument('--regex', help='regex to use to parse the date ' +
                         'from a backup filename.')
     parser.add_argument('--deltas', '-d', metavar='DELTA',
@@ -171,7 +174,7 @@ def main(argv):
         # Delete old backups
         try:
             tarsnap_expire(job['deltas'], job['regex'], job['dateformat'],
-                           args.tarsnap_options)
+                           args.tarsnap_options, args.dryrun)
         except TarsnapError, e:
             print "tarsnap execution failed:\n%s" % e
             return 1

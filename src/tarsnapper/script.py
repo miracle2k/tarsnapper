@@ -58,11 +58,12 @@ def tarsnap_expire(deltas, regex, dateformat, options):
     response = call_tarsnap(['--list-archives'], options)
     backups = {}
     for backup_path in response.readlines():
+        backup_path = backup_path.rstrip('\n\r')
         match = regex.match(backup_path)
         if not match:
             continue
         date = parse_date(match.groupdict()['date'], dateformat)
-        backups[match.group(0)] = date
+        backups[backup_path] = date
 
     # Determine which backups we need to get rid of, which to keep
     print backups

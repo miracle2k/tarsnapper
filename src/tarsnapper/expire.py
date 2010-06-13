@@ -66,6 +66,10 @@ def expire(backups, deltas):
 
         # For the number of backups needed, use the first backup that is
         # not younger than the requested limit.
+        # XXX: Actually, this is pretty broken. No backup would ever
+        # graduate to an older generation, and backups already in older
+        # generations would never expire. If anything, we would need to
+        # use the first backup that is younger than the limit.
         while num_backups_in_generation > 0 and backups:
             name, backup_time = backups.pop()
             if backup_time <= dt_incr - current_delta:

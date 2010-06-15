@@ -1,0 +1,76 @@
+==========
+Tarsnapper
+==========
+
+Simple wrapper around tarsnap which does two things:
+
+  - Let's you define "backup jobs" (tarsnap invocations) in a config file,
+    though this has little advantage over just using a a shell script.
+
+  - The ability to expire old backups using a Grandfather-father-son backup
+    scheme.
+
+
+Basic usage
+===========
+
+Runs the jobs defined in the configuration file:
+
+    $ tarsnapper -c myconfigfile
+
+Specify a job on the command line: In this case, we only use the expire
+functionality, no backups are being created.
+
+    $ tarsnapper --expire --regex "^foobar-(?P<date>.*)$" --deltas 1d 7d 30d
+
+
+The config file
+===============
+
+    # Global values, valid for all jobs unless overridden:
+    deltas: 1d 7d 30d
+    target: /localmachine/%(name)s-%(date)s
+
+    jobs:
+      images:
+        sources: /home/michael/Images
+
+      some-other-job:
+        sources:
+          - /var/dir/1
+          - /etc/google
+        target: /custom-target-%(date)s.zip
+        deltas: 1h 6h 1d 7d 24d 180d
+
+For the ``images`` job, the global target will be used, with the ``name``
+placeholder replaced by the backup job name, in this case ``images``.
+
+
+How expiring backups works
+==========================
+
+The approach chosen tries to achieve the following:
+
+    * Do not require backup names to include information on which generation
+      a backup belongs to, like for example ``tarsnap-generations`` does.
+      That is, you can create your backups anyway you wish, and simply use
+      this utility to delete old backups.
+
+    * Do not use any fixed generations (weekly, monthly etc), but freeform
+      timespans.
+
+    * Similarily, do not make any assumptions about when or if backup jobs
+      have actually run or will run, but try to match the given deltas as
+      closely as possible.
+
+The generations are defined by a list of deltas. ``60`` means a minute,
+``12h`` is half a day, ``7d`` is a week. The number of backups in each
+generation is implied by it's and the parent generation's delta.
+
+For example, given the deltas ``1h 1d 7d``, the first generation will
+consist of 24 backups each one hour older than the previous (or the closest
+approximation possible given the available backups), the second generation
+of 7 backups each one day older than the previous, and backups older than
+7 days will be discarded for good.
+
+The most recent backup is always kept.

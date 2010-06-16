@@ -43,7 +43,7 @@ def expire(backups, deltas):
     """
 
     # Deal with some special cases
-    assert len(deltas) > 2, "At least two deltas are required"
+    assert len(deltas) >= 2, "At least two deltas are required"
     if not backups:
         return []
 

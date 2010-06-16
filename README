@@ -21,7 +21,7 @@ Runs the jobs defined in the configuration file:
 Specify a job on the command line: In this case, we only use the expire
 functionality, no backups are being created.
 
-    $ tarsnapper --expire --regex "^foobar-(?P<date>.*)$" --deltas 1d 7d 30d
+    $ tarsnapper --expire --target "foobar-\$date" --deltas 1d 7d 30d
 
 
 The config file
@@ -29,17 +29,17 @@ The config file
 
     # Global values, valid for all jobs unless overridden:
     deltas: 1d 7d 30d
-    target: /localmachine/%(name)s-%(date)s
+    target: /localmachine/$name-$date
 
     jobs:
       images:
-        sources: /home/michael/Images
+        source: /home/michael/Images
 
       some-other-job:
         sources:
           - /var/dir/1
           - /etc/google
-        target: /custom-target-%(date)s.zip
+        target: /custom-target-$date.zip
         deltas: 1h 6h 1d 7d 24d 180d
 
 For the ``images`` job, the global target will be used, with the ``name``

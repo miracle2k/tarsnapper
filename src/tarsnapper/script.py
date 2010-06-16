@@ -1,11 +1,13 @@
 import sys
-import argparse
+import uuid
 import subprocess
 import re
+from string import Template
 from datetime import datetime, timedelta
 import logging
+import argparse
 
-import expire
+import expire, config
 
 
 log = logging.getLogger()
@@ -37,9 +39,10 @@ def call_tarsnap(arguments, options):
 
 
 DATE_FORMATS = (
-    '%Y-%m-%dT%H:%M:%S.Z',
-    '%Y%m%d-%H%M'
+    '%Y%m%d-%H%M%S',
+    '%Y%m%d-%H%M',
 )
+DEFAULT_DATEFORMAT = '%Y%m%d-%H%M%S'
 
 def parse_date(string, dateformat=None):
     """Parse a date string using either a list of builtin formats,
@@ -54,12 +57,17 @@ def parse_date(string, dateformat=None):
         raise ValueError('"%s" is not a supported date format' % string)
 
 
-def tarsnap_expire(deltas, regex, dateformat, options, dryrun=False):
+def tarsnap_expire(name, deltas, target, dateformat, options, dryrun=False):
     """Call into tarsnap, parse the list of archives, then proceed to
     actually have tarsnap delete those archives we need to expire
     according to the deltas defined.
+
+    If a dry run is wanted, set ``dryrun`` to a dict of the backups to
+    pretend that exist (they will always be used, and not matched).
     """
-    regex = re.compile(regex)
+    unique = uuid.uuid4().hex
+    target = Template(target).substitute({'name': name, 'date': unique})
+    regex = re.compile("^%s$" % re.escape(target).replace(unique, '(?P<date>.*?)'))
 
     # Build a list of existing backups
     response = call_tarsnap(['--list-archives'], options)
@@ -73,6 +81,10 @@ def tarsnap_expire(deltas, regex, dateformat, options, dryrun=False):
         backups[backup_path] = date
     log.info('%d backups are matching' % len(backups))
 
+    # Use any fake backups for dry runs?
+    if dryrun:
+        backups.update(dryrun)
+
     # Determine which backups we need to get rid of, which to keep
     to_keep = expire.expire(backups, deltas)
     log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
@@ -81,22 +93,37 @@ def tarsnap_expire(deltas, regex, dateformat, options, dryrun=False):
     for name, _ in backups.items():
         if not name in to_keep:
             log.info('Deleting %s' % name)
-            if not dryrun:
+            if dryrun in (False, None):
                 call_tarsnap(['-d', '-f', name], options)
         else:
             log.debug('Keeping %s' % name)
 
 
+def tarsnap_make(name, target_templ, sources, dateformat, options, dryrun=False):
+    """Call tarsnap to make a backup, given the options.
+    """
+    now = datetime.utcnow()
+    date_str = now.strftime(dateformat or DEFAULT_DATEFORMAT)
+    target = Template(target_templ).safe_substitute({'date': date_str,
+                                                     'name': name})
+
+    if name:
+        log.info('Creating backup %s: %s' % (name, target))
+    else:
+        log.info('Creating backup: %s' % target)
+    if not dryrun:
+        call_tarsnap(['-c', '-f', target] + sources, options)
+
+    return target, now
+
+
 def timedelta_string(value):
     """Parse a string to a timedelta value.
     """
-    if value.endswith('s'):
-        return timedelta(seconds=int(value[:-1]))
-    elif value.endswith('h'):
-        return timedelta(seconds=int(value[:-1]) * 3600)
-    elif value.endswith('d'):
-        return timedelta(days=int(value[:-1]))
-    raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % value)
+    try:
+        return config.str_to_timedelta(value)
+    except ValueError, e:
+        raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
 
 def parse_args(argv):
@@ -111,34 +138,34 @@ def parse_args(argv):
     parser.add_argument('--config', '-c', help='use the given config file')
     parser.add_argument('--dry-run', help='only simulate, make no changes',
                         dest='dryrun', action='store_true')
-    parser.add_argument('--regex', help='regex to use to parse the date ' +
-                        'from a backup filename.')
+    parser.add_argument('--target', help='target filename for the backup')
+    parser.add_argument('--sources', nargs='+', help='paths to backup',
+                        action='append', default=[])
     parser.add_argument('--deltas', '-d', metavar='DELTA',
                         type=timedelta_string,
                         help='generation deltas', nargs='+')
     parser.add_argument('--dateformat', '-f', help='dateformat')
     parser.add_argument('-o', metavar=('name', 'value'), nargs=2,
-                        dest='tarsnap_options', action='append', default=[],
+                        dest='tarsnap_options', default=[],
                         help='option to pass to tarsnap')
     parser.add_argument('jobs', metavar='job', nargs='*')
     args = parser.parse_args(argv)
 
     # Do some argument validation that would be to much to ask for
     # argparse to handle internally.
-    if not args.expire:
-        raise ArgumentError('--expire is required, for now')
-    if args.config:
-        raise ArgumentError('--config is not yet supported')
-    if args.config and (args.regex or args.dateformat or args.deltas):
-        raise ArgumentError('If --config is used, then --regex, --deltas and '
-                           '--dateformat are not available')
+    if args.config and (args.target or args.dateformat or args.deltas or
+                        args.sources):
+        raise ArgumentError('If --config is used, then --target, --deltas, '
+                            '--sources and --dateformat are not available')
     if args.jobs and not args.config:
         raise ArgumentError(('Specific jobs (%s) can only be given if a '
                             'config file is used') % args.jobs)
-    if not args.config and not args.deltas or not args.regex:
-        raise ArgumentError('If no config file is used, both --regex and '
+    if not args.config and (not args.deltas or not args.target):
+        raise ArgumentError('If no config file is used, both --target and '
                            '--deltas need to be given')
-
+    if not args.config and (not args.sources and not args.expire):
+        raise ArgumentError('Unless --expire is given, you need to specify '
+                            'at least on source path using --sources')
     return args
 
 
@@ -158,25 +185,43 @@ def main(argv):
     log.addHandler(ch)
 
     # Build a list of jobs, process them.
-    jobs = []
     if args.config:
-        pass  # XXX
+        try:
+            jobs = config.load_config_from_file(args.config)
+        except config.ConfigError, e:
+            log.fatal('Error loading config file: %s' % e)
+            return 1
     else:
         # Only a single job, as given on the command line
-        jobs.append({'regex': args.regex, 'dateformat': args.dateformat,
-                     'deltas': args.deltas})
+        jobs = {None: {'target': args.target, 'dateformat': args.dateformat,
+                       'deltas': args.deltas, 'sources': args.sources}}
 
-    for job in jobs:
-        # Do a new backup
-        if not args.expire:
-            pass # XXX
+    # Validate the requested list of jobs to run
+    if args.jobs:
+        for name in args.jobs:
+            if not name in jobs:
+                log.fatal('Job "%s" is not defined in the config file' % name)
+                return 1
 
-        # Delete old backups
+    for job_name, job in jobs.iteritems():
+        if args.jobs and not job_name in jobs:
+            continue
+
         try:
-            tarsnap_expire(job['deltas'], job['regex'], job['dateformat'],
-                           args.tarsnap_options, args.dryrun)
+            # Do a new backup
+            created_backups = {}
+            if not args.expire:
+                name, date = tarsnap_make(job_name, job['target'],
+                                          job['sources'], job['dateformat'],
+                                          args.tarsnap_options, args.dryrun)
+                created_backups[name] = date
+
+            # Delete old backups
+            tarsnap_expire(job_name, job['deltas'], job['target'],
+                           job['dateformat'], args.tarsnap_options,
+                           created_backups if args.dryrun else False)
         except TarsnapError, e:
-            print "tarsnap execution failed:\n%s" % e
+            log.fatal("tarsnap execution failed:\n%s" % e)
             return 1
 
 

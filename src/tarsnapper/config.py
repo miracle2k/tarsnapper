@@ -105,7 +105,7 @@ def load_config(text):
         new_job = {
             'sources': sources,
             'target': job_dict.pop('target', default_target),
-            'deltas': parse_deltas(job_dict.pop('deltas', default_deltas)),
+            'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,
             'dateformat': job_dict.pop('dateformat', default_dateformat),
         }
         if not new_job['sources']:

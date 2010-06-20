@@ -1,4 +1,5 @@
-import sys
+import sys, os
+from os import path
 import uuid
 import subprocess
 import re
@@ -204,7 +205,7 @@ def main(argv):
                 return 1
 
     for job_name, job in jobs.iteritems():
-        if args.jobs and not job_name in jobs:
+        if args.jobs and not job_name in args.jobs:
             continue
 
         try:

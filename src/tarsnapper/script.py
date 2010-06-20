@@ -141,7 +141,7 @@ def parse_args(argv):
                         dest='dryrun', action='store_true')
     parser.add_argument('--target', help='target filename for the backup')
     parser.add_argument('--sources', nargs='+', help='paths to backup',
-                        action='append', default=[])
+                        default=[])
     parser.add_argument('--deltas', '-d', metavar='DELTA',
                         type=timedelta_string,
                         help='generation deltas', nargs='+')
@@ -209,18 +209,42 @@ def main(argv):
             continue
 
         try:
+            # Determine whether we can run this job. If any of the sources
+            # are missing, or any source directory is empty, we skip this job.
+            sources_missing = False
+            for source in job['sources']:
+                if not path.exists(source):
+                    sources_missing = True
+                    break
+                if path.isdir(source) and not os.listdir(source):
+                    # directory is empty
+                    sources_missing = True
+                    break
+
             # Do a new backup
             created_backups = {}
-            if not args.expire:
+            skipped = False
+            if sources_missing:
+                if job_name:
+                    log.info(("Not backing up '%s', because not all given "
+                             "sources exist") % job_name)
+                else:
+                    log.info("Not making backup, because not all given "
+                             "sources exist")
+                skipped = True
+            elif not args.expire:
                 name, date = tarsnap_make(job_name, job['target'],
                                           job['sources'], job['dateformat'],
                                           args.tarsnap_options, args.dryrun)
                 created_backups[name] = date
 
-            # Delete old backups
-            tarsnap_expire(job_name, job['deltas'], job['target'],
-                           job['dateformat'], args.tarsnap_options,
-                           created_backups if args.dryrun else False)
+            # Expire old backups, but only bother if either we made a new
+            # backup, or if expire what explicitly requested.
+            if not skipped or args.expire:
+                # Delete old backups
+                tarsnap_expire(job_name, job['deltas'], job['target'],
+                               job['dateformat'], args.tarsnap_options,
+                               created_backups if args.dryrun else False)
         except TarsnapError, e:
             log.fatal("tarsnap execution failed:\n%s" % e)
             return 1

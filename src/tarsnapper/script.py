@@ -165,7 +165,7 @@ def parse_args(argv):
                            '--deltas need to be given')
     if not args.config and (not args.sources and not args.expire):
         raise ArgumentError('Unless --expire is given, you need to specify '
-                            'at least on source path using --sources')
+                            'at least one source path using --sources')
     return args
 
 

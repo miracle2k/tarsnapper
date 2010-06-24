@@ -78,15 +78,18 @@ def expire(backups, deltas):
             by_dist = sorted([(bn, bd, abs(bd - dt_pointer)) for bn, bd in backups], key=operator.itemgetter(2))
             if by_dist:
                 if by_dist[0][0] == last_selected:
-                    # Not enough backups, don't loop endlessly. This would
-                    # happen in some cases where you'd have a delta much
-                    # smaller than the time difference between some backups.
-                    break
-                last_selected = by_dist[0][0]
-                to_keep.add(by_dist[0][0])
-                # (3) Proceed forward in time, jumping by the current
-                # generation's delta.
-                dt_pointer = by_dist[0][1] + current_delta
+                    # If the time diff between two backups is larger than
+                    # the delta, it can happen that multiple iterations of
+                    # this loop determine the same backup to be closest.
+                    # In this case, to avoid looping endlessly, we need to
+                    # force the date pointer to move forward.
+                    dt_pointer += current_delta
+                else:
+                    last_selected = by_dist[0][0]
+                    to_keep.add(by_dist[0][0])
+                    # (3) Proceed forward in time, jumping by the current
+                    # generation's delta.
+                    dt_pointer = by_dist[0][1] + current_delta
             else:
                 # No more backups found in this generation.
                 break

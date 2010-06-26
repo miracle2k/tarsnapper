@@ -134,8 +134,10 @@ def parse_args(argv):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-q', action='store_true', dest='quiet', help='be quiet')
     group.add_argument('-v', action='store_true', dest='verbose', help='be verbose')
-    parser.add_argument('--expire', action='store_true',
-                        help='expire only, don\'t make backups')
+    parser.add_argument('--expire', action='store_true', dest='expire_only',
+                        default=None, help='expire only, don\'t make backups')
+    parser.add_argument('--no-expire', action='store_true',  default=None,
+                        help='don\'t expire, only make backups')
     parser.add_argument('--config', '-c', help='use the given config file')
     parser.add_argument('--dry-run', help='only simulate, make no changes',
                         dest='dryrun', action='store_true')
@@ -164,9 +166,11 @@ def parse_args(argv):
     if not args.config and (not args.deltas or not args.target):
         raise ArgumentError('If no config file is used, both --target and '
                            '--deltas need to be given')
-    if not args.config and (not args.sources and not args.expire):
+    if not args.config and (not args.sources and not args.expire_only):
         raise ArgumentError('Unless --expire is given, you need to specify '
                             'at least one source path using --sources')
+    if args.expire_only and args.no_expire:
+        raise ArgumentError('Cannot specify both --expire and --no-expire')
     return args
 
 
@@ -232,15 +236,15 @@ def main(argv):
                     log.info("Not making backup, because not all given "
                              "sources exist")
                 skipped = True
-            elif not args.expire:
+            elif not args.expire_only:
                 name, date = tarsnap_make(job_name, job['target'],
                                           job['sources'], job['dateformat'],
                                           args.tarsnap_options, args.dryrun)
                 created_backups[name] = date
 
             # Expire old backups, but only bother if either we made a new
-            # backup, or if expire what explicitly requested.
-            if not skipped or args.expire:
+            # backup, or if expire was explicitly requested.
+            if (not skipped or args.expire_only) and not args.no_expire:
                 # Delete old backups
                 tarsnap_expire(job_name, job['deltas'], job['target'],
                                job['dateformat'], args.tarsnap_options,

@@ -1,0 +1,3 @@
+Presuming tarsnap doesn't already take care of thism, a lock file 
+should be used to prevent the same config file to be processed 
+by multiple instances at the same time.

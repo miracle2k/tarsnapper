@@ -149,7 +149,7 @@ def parse_args(argv):
                         help='generation deltas', nargs='+')
     parser.add_argument('--dateformat', '-f', help='dateformat')
     parser.add_argument('-o', metavar=('name', 'value'), nargs=2,
-                        dest='tarsnap_options', default=[],
+                        dest='tarsnap_options', default=[], action='append',
                         help='option to pass to tarsnap')
     parser.add_argument('jobs', metavar='job', nargs='*')
     args = parser.parse_args(argv)

@@ -228,15 +228,15 @@ def main(argv):
             # Do a new backup
             created_backups = {}
             skipped = False
-            if sources_missing:
-                if job_name:
-                    log.info(("Not backing up '%s', because not all given "
-                             "sources exist") % job_name)
-                else:
-                    log.info("Not making backup, because not all given "
-                             "sources exist")
-                skipped = True
-            elif not args.expire_only:
+            if not args.expire_only:
+                if sources_missing:
+                    if job_name:
+                        log.info(("Not backing up '%s', because not all given "
+                                 "sources exist") % job_name)
+                    else:
+                        log.info("Not making backup, because not all given "
+                                 "sources exist")
+                    skipped = True
                 name, date = tarsnap_make(job_name, job['target'],
                                           job['sources'], job['dateformat'],
                                           args.tarsnap_options, args.dryrun)

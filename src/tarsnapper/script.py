@@ -237,10 +237,11 @@ def main(argv):
                         log.info("Not making backup, because not all given "
                                  "sources exist")
                     skipped = True
-                name, date = tarsnap_make(job_name, job['target'],
-                                          job['sources'], job['dateformat'],
-                                          args.tarsnap_options, args.dryrun)
-                created_backups[name] = date
+                else:
+                  name, date = tarsnap_make(job_name, job['target'],
+                                            job['sources'], job['dateformat'],
+                                            args.tarsnap_options, args.dryrun)
+                  created_backups[name] = date
 
             # Expire old backups, but only bother if either we made a new
             # backup, or if expire was explicitly requested.

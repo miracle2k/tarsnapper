@@ -162,7 +162,7 @@ def parse_args(argv):
                             '--sources and --dateformat are not available')
     if args.jobs and not args.config:
         raise ArgumentError(('Specific jobs (%s) can only be given if a '
-                            'config file is used') % args.jobs)
+                            'config file is used') % ", ".join(args.jobs))
     if not args.config and (not args.deltas or not args.target):
         raise ArgumentError('If no config file is used, both --target and '
                            '--deltas need to be given')

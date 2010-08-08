@@ -14,14 +14,17 @@ Simple wrapper around tarsnap which does two things:
 Basic usage
 ===========
 
-Runs the jobs defined in the configuration file:
+Create backups based on the jobs defined in the configuration file:
 
-    $ tarsnapper -c myconfigfile
+    $ tarsnapper -c myconfigfile make
 
-Specify a job on the command line: In this case, we only use the expire
-functionality, no backups are being created.
+Specify a job on the command line: In this case, we use the "expire"
+command, so no backups will be created, but only old backups deleted.
 
-    $ tarsnapper --expire --target "foobar-\$date" --deltas 1d 7d 30d
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
+
+Note the single "-" that needs to be given between the --deltas argument
+and the command.
 
 
 The config file

@@ -58,14 +58,7 @@ def parse_date(string, dateformat=None):
         raise ValueError('"%s" is not a supported date format' % string)
 
 
-def tarsnap_expire(name, deltas, target, dateformat, options, dryrun=False):
-    """Call into tarsnap, parse the list of archives, then proceed to
-    actually have tarsnap delete those archives we need to expire
-    according to the deltas defined.
-
-    If a dry run is wanted, set ``dryrun`` to a dict of the backups to
-    pretend that exist (they will always be used, and not matched).
-    """
+def tarsnap_get_list(name, target, dateformat, options):
     unique = uuid.uuid4().hex
     target = Template(target).substitute({'name': name, 'date': unique})
     regex = re.compile("^%s$" % re.escape(target).replace(unique, '(?P<date>.*?)'))
@@ -81,6 +74,19 @@ def tarsnap_expire(name, deltas, target, dateformat, options, dryrun=False):
         date = parse_date(match.groupdict()['date'], dateformat)
         backups[backup_path] = date
     log.info('%d backups are matching' % len(backups))
+
+    return backups
+
+
+def tarsnap_expire(name, deltas, target, dateformat, options, dryrun=False):
+    """Call into tarsnap, parse the list of archives, then proceed to
+    actually have tarsnap delete those archives we need to expire
+    according to the deltas defined.
+
+    If a dry run is wanted, set ``dryrun`` to a dict of the backups to
+    pretend that exist (they will always be used, and not matched).
+    """
+    backups = tarsnap_get_list(name, target, dateformat, options)
 
     # Use any fake backups for dry runs?
     if dryrun:
@@ -145,6 +151,31 @@ class Command(object):
         raise NotImplementedError()
 
 
+class ListCommand(Command):
+
+    help = 'list all the existing backups'
+    description = 'For each job, output a sorted list of existing backups.'
+
+    def run(self, jobs):
+        for job_name, job in jobs.iteritems():
+            self.log.info('%s' % job_name)
+
+            # XXX: We seriouly need a way to minimize the number of
+            # calls to tarsnap. It's not as simple as just doing a single
+            # call though. We need to be sure that there's nothing in
+            # tarsnap_options which could change the result. I guess
+            # that's only the keyfile parameter, so we'd need to pay
+            # attention to that.
+            backups = tarsnap_get_list(job_name, job['target'],
+                                       job['dateformat'],
+                                       self.args.tarsnap_options,)
+
+            backups = [(name, time) for name, time in backups.items()]
+            backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
+            for backup, _ in backups:
+                print "  %s" % backup
+
+
 class ExpireCommand(Command):
 
     help = 'delete old backups, but don\'t create a new one'
@@ -164,7 +195,6 @@ class ExpireCommand(Command):
     def run(self, jobs):
         for job_name, job in jobs.iteritems():
             self.expire(job_name, job)
-
 
 
 class MakeCommand(ExpireCommand):
@@ -243,6 +273,7 @@ class MakeCommand(ExpireCommand):
 COMMANDS = {
     'make': MakeCommand,
     'expire': ExpireCommand,
+    'list': ListCommand,
 }
 
 

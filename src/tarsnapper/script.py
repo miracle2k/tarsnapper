@@ -325,7 +325,7 @@ def parse_args(argv):
         # command, rather than simply having it once, globally.
         subparser.add_argument(
             'jobs', metavar='job', nargs='*',
-            help='only run the given job as defined in the config file')
+            help='only process the given job as defined in the config file')
 
     # This would be in a group automatically, but it would be shown as
     # the very first thing, while it really should be the last (which
@@ -340,7 +340,7 @@ def parse_args(argv):
     group = parser.add_argument_group(title='positional arguments')
     group.add_argument(
         '__not_used', metavar='job', nargs='*',
-        help='only run the given job as defined in the config file')
+        help='only process the given job as defined in the config file')
 
     args = parser.parse_args(argv)
 

@@ -302,8 +302,9 @@ def parse_args(argv):
     group.add_argument('--dateformat', '-f', help='dateformat')
 
     # This will allow the user to break out of an nargs='*' to start
-    # with the subcommand.
-    parser.add_argument('-', dest='__dummy', action="store_true", help=argparse.SUPPRESS)
+    # with the subcommand. See http://bugs.python.org/issue9571.
+    parser.add_argument('-', dest='__dummy', action="store_true",
+                        help=argparse.SUPPRESS)
 
     subparsers = parser.add_subparsers(
         title="commands", description="commands may offer additional options")

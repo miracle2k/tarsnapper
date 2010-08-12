@@ -9,34 +9,126 @@ import logging
 import argparse
 
 import expire, config
-
-
-log = logging.getLogger()
+from config import Job
 
 
 class ArgumentError(Exception):
     pass
 
+
 class TarsnapError(Exception):
     pass
 
 
-def call_tarsnap(arguments, options):
+class TarsnapBackend(object):
+    """The code that calls the tarsnap executable.
+
+    One of the reasons this is designed as a class is to allow the backend
+    to mimimize the calls to "tarsnap --list-archives" by caching the result.
     """
-    ``arguments`` is a single list of strings, ``options`` is a list of
-    key value pairs.
-    """
-    call_with = ['tarsnap']
-    call_with.extend(arguments)
-    for key, value in options:
-        call_with.extend(["--%s" % key, value])
-    log.debug("Executing: %s" % " ".join(call_with))
-    p = subprocess.Popen(call_with, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    p.wait()
-    if p.returncode != 0:
-        raise TarsnapError('%s' % p.stderr.read())
-    return p.stdout
+
+    def __init__(self, log, options, dryrun=False):
+        """
+        ``options`` - options to pass to each tarsnap call
+        (a list of key value pairs).
+
+        In ``dryrun`` mode, will class will only pretend to make and/or
+        delete backups. This is a global option rather than a method
+        specific one, because once the cached list of archives is tainted
+        with simulated data, you don't really want to run in non-dry mode.
+        """
+        self.log = log
+        self.options = options
+        self.dryrun = dryrun
+        self._archive_list = None
+
+    def _call(self, *arguments):
+        """
+        ``arguments`` is a single list of strings.
+        """
+        call_with = ['tarsnap']
+        call_with.extend(arguments)
+        for key, value in self.options:
+            call_with.extend(["--%s" % key, value])
+        self.log.debug("Executing: %s" % " ".join(call_with))
+        p = subprocess.Popen(call_with, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        p.wait()
+        if p.returncode != 0:
+            raise TarsnapError('%s' % p.stderr.read())
+        return p.stdout
+
+    def get_archives(self):
+        """A list of archives as returned by --list-archives. Queried
+        the first time it is accessed, and then subsequently cached.
+        """
+        if self._archive_list is None:
+            response = self._call('--list-archives')
+            self._archive_list = [l.rstrip() for l in response.readlines()]
+        return self._archive_list
+    archives = property(get_archives)
+
+    def get_backups(self, job):
+        """Return a dict of backups that exist for the given job, by
+        parsing the list of archives.
+        """
+        unique = uuid.uuid4().hex
+        target = Template(job.target).substitute({'name': job.name, 'date': unique})
+        regex = re.compile("^%s$" % re.escape(target).replace(unique, '(?P<date>.*?)'))
+
+        backups = {}
+        for backup_path in self.get_archives():
+            match = regex.match(backup_path)
+            if not match:
+                continue
+            date = parse_date(match.groupdict()['date'], job.dateformat)
+            backups[backup_path] = date
+
+        return backups
+
+    def expire(self, job):
+        """Have tarsnap delete those archives which we need to expire
+        according to the deltas defined.
+
+        If a dry run is wanted, set ``dryrun`` to a dict of the backups to
+        pretend that exist (they will always be used, and not matched).
+        """
+
+        backups = self.get_backups(job)
+        self.log.info('%d backups are matching' % len(backups))
+
+        # Determine which backups we need to get rid of, which to keep
+        to_keep = expire.expire(backups, job.deltas)
+        self.log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
+
+        # Delete all others
+        for name, _ in backups.items():
+            if not name in to_keep:
+                self.log.info('Deleting %s' % name)
+                if not self.dryrun:
+                    self._call('-d', '-f', name)
+                self.archives.remove(name)
+            else:
+                self.log.debug('Keeping %s' % name)
+
+    def make(self, job):
+        now = datetime.utcnow()
+        date_str = now.strftime(job.dateformat or DEFAULT_DATEFORMAT)
+        target = Template(job.target).safe_substitute(
+            {'date': date_str, 'name': job.name})
+
+        if job.name:
+            self.log.info('Creating backup %s: %s' % (job.name, target))
+        else:
+            self.log.info('Creating backup: %s' % target)
+
+        if not self.dryrun:
+            self._call('-c', '-f', target, *job.sources)
+        # Add the new backup the list of archives, so we have an up-to-date
+        # list without needing to query again.
+        self.archives.append(target)
+
+        return target, now
 
 
 DATE_FORMATS = (
@@ -58,72 +150,6 @@ def parse_date(string, dateformat=None):
         raise ValueError('"%s" is not a supported date format' % string)
 
 
-def tarsnap_get_list(name, target, dateformat, options):
-    unique = uuid.uuid4().hex
-    target = Template(target).substitute({'name': name, 'date': unique})
-    regex = re.compile("^%s$" % re.escape(target).replace(unique, '(?P<date>.*?)'))
-
-    # Build a list of existing backups
-    response = call_tarsnap(['--list-archives'], options)
-    backups = {}
-    for backup_path in response.readlines():
-        backup_path = backup_path.rstrip('\n\r')
-        match = regex.match(backup_path)
-        if not match:
-            continue
-        date = parse_date(match.groupdict()['date'], dateformat)
-        backups[backup_path] = date
-    log.info('%d backups are matching' % len(backups))
-
-    return backups
-
-
-def tarsnap_expire(name, deltas, target, dateformat, options, dryrun=False):
-    """Call into tarsnap, parse the list of archives, then proceed to
-    actually have tarsnap delete those archives we need to expire
-    according to the deltas defined.
-
-    If a dry run is wanted, set ``dryrun`` to a dict of the backups to
-    pretend that exist (they will always be used, and not matched).
-    """
-    backups = tarsnap_get_list(name, target, dateformat, options)
-
-    # Use any fake backups for dry runs?
-    if dryrun:
-        backups.update(dryrun)
-
-    # Determine which backups we need to get rid of, which to keep
-    to_keep = expire.expire(backups, deltas)
-    log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
-
-    # Delete all others
-    for name, _ in backups.items():
-        if not name in to_keep:
-            log.info('Deleting %s' % name)
-            if dryrun in (False, None):
-                call_tarsnap(['-d', '-f', name], options)
-        else:
-            log.debug('Keeping %s' % name)
-
-
-def tarsnap_make(name, target_templ, sources, dateformat, options, dryrun=False):
-    """Call tarsnap to make a backup, given the options.
-    """
-    now = datetime.utcnow()
-    date_str = now.strftime(dateformat or DEFAULT_DATEFORMAT)
-    target = Template(target_templ).safe_substitute({'date': date_str,
-                                                     'name': name})
-
-    if name:
-        log.info('Creating backup %s: %s' % (name, target))
-    else:
-        log.info('Creating backup: %s' % target)
-    if not dryrun:
-        call_tarsnap(['-c', '-f', target] + sources, options)
-
-    return target, now
-
-
 def timedelta_string(value):
     """Parse a string to a timedelta value.
     """
@@ -135,9 +161,14 @@ def timedelta_string(value):
 
 class Command(object):
 
+    BackendClass = TarsnapBackend
+
     def __init__(self, args, log):
         self.args = args
         self.log = log
+        self.backend = self.BackendClass(
+            self.log, self.args.tarsnap_options,
+            dryrun=getattr(self.args, 'dryrun', False))
 
     @classmethod
     def setup_arg_parser(self, parser):
@@ -157,19 +188,19 @@ class ListCommand(Command):
     description = 'For each job, output a sorted list of existing backups.'
 
     def run(self, jobs):
-        for job_name, job in jobs.iteritems():
-            self.log.info('%s' % job_name)
+        # Make sure the list of archives has been queried. This is simply
+        # so we don't start to hang after having printed the first job
+        # header already within the loop.
+        self.backend.get_archives()
 
-            # XXX: We seriouly need a way to minimize the number of
-            # calls to tarsnap. It's not as simple as just doing a single
-            # call though. We need to be sure that there's nothing in
-            # tarsnap_options which could change the result. I guess
-            # that's only the keyfile parameter, so we'd need to pay
-            # attention to that.
-            backups = tarsnap_get_list(job_name, job['target'],
-                                       job['dateformat'],
-                                       self.args.tarsnap_options,)
+        for job in jobs.values():
+            self.log.info('%s' % job.name)
 
+            backups = self.backend.get_backups(job)
+
+            # Sort backups by time
+            # TODO: This duplicates code from the expire module. Should
+            # the list of backups always be returned sorted instead?
             backups = [(name, time) for name, time in backups.items()]
             backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
             for backup, _ in backups:
@@ -187,14 +218,12 @@ class ExpireCommand(Command):
         parser.add_argument('--dry-run', dest='dryrun', action='store_true',
                             help='only simulate, don\'t delete anything')
 
-    def expire(self, job_name, job, fake_backups=False):
-        tarsnap_expire(job_name, job['deltas'], job['target'],
-                       job['dateformat'], self.args.tarsnap_options,
-                       fake_backups)
+    def expire(self, job):
+        self.backend.expire(job)
 
     def run(self, jobs):
         for job_name, job in jobs.iteritems():
-            self.expire(job_name, job)
+            self.expire(job)
 
 
 class MakeCommand(ExpireCommand):
@@ -228,14 +257,11 @@ class MakeCommand(ExpireCommand):
                                 'using --sources')
 
     def run(self, jobs):
-        # validate that each job we run has a deltas, a target? this
-        # could replace stuff in validate_args
-
-        for job_name, job in jobs.iteritems():
+        for job in jobs.values():
             # Determine whether we can run this job. If any of the sources
             # are missing, or any source directory is empty, we skip this job.
             sources_missing = False
-            for source in job['sources']:
+            for source in job.sources:
                 if not path.exists(source):
                     sources_missing = True
                     break
@@ -245,11 +271,10 @@ class MakeCommand(ExpireCommand):
                     break
 
             # Do a new backup
-            created_backups = {}
             skipped = False
 
             if sources_missing:
-                if job_name:
+                if job.name:
                     self.log.info(("Not backing up '%s', because not all given "
                                    "sources exist") % job_name)
                 else:
@@ -257,17 +282,12 @@ class MakeCommand(ExpireCommand):
                                   "sources exist")
                 skipped = True
             else:
-                name, date = tarsnap_make(job_name, job['target'],
-                                          job['sources'], job['dateformat'],
-                                          self.args.tarsnap_options,
-                                          self.args.dryrun)
-                created_backups[name] = date
+                self.backend.make(job)
 
             # Expire old backups, but only bother if either we made a new
             # backup, or if expire was explicitly requested.
             if not skipped and not self.args.no_expire:
-                self.expire(job_name, job,
-                            created_backups if self.args.dryrun else False)
+                self.expire(job)
 
 
 COMMANDS = {
@@ -372,6 +392,7 @@ def main(argv):
         logging.DEBUG if args.verbose else logging.INFO)
     ch = logging.StreamHandler()
     ch.setFormatter(logging.Formatter("%(message)s"))
+    log = logging.getLogger()
     log.setLevel(level)
     log.addHandler(ch)
 
@@ -384,8 +405,8 @@ def main(argv):
             return 1
     else:
         # Only a single job, as given on the command line
-        jobs = {None: {'target': args.target, 'dateformat': args.dateformat,
-                       'deltas': args.deltas, 'sources': args.sources}}
+        jobs = {None: Job(**{'target': args.target, 'dateformat': args.dateformat,
+                       '      deltas': args.deltas, 'sources': args.sources})}
 
     # Validate the requested list of jobs to run
     if args.jobs:

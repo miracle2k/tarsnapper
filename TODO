@@ -2,8 +2,6 @@ Presuming tarsnap doesn't already take care of thism, a lock file
 should be used to prevent the same config file to be processed
 by multiple instances at the same time.
 
-Can we reduce the number of --list-archives calls?
-
 Support globbing when specifying sources.
 
 Support includes, for example also "include /var/lib/vz/*/backup.conf"

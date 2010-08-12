@@ -23,11 +23,23 @@ from string import Template
 import yaml
 
 
-__all__ = ('load_config', 'load_config_from_file', 'ConfigError',)
+__all__ = ('Job', 'load_config', 'load_config_from_file', 'ConfigError',)
 
 
 class ConfigError(Exception):
     pass
+
+
+class Job(object):
+    """Represent a single backup job.
+    """
+
+    def __init__(self, **initial):
+        self.name = initial.get('name')
+        self.target = initial.get('target')
+        self.dateformat = initial.get('dateformat')
+        self.deltas = initial.get('deltas')
+        self.sources = initial.get('sources')
 
 
 def require_placeholders(text, placeholders, what):
@@ -102,18 +114,19 @@ def load_config(text):
             sources = [job_dict.pop('source')]
         else:
             sources = job_dict.pop('sources', None)
-        new_job = {
+        new_job = Job(**{
+            'name': job_name,
             'sources': sources,
             'target': job_dict.pop('target', default_target),
             'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,
             'dateformat': job_dict.pop('dateformat', default_dateformat),
-        }
-        if not new_job['sources']:
+        })
+        if not new_job.sources:
             raise ConfigError('%s does not define any sources' % job_name)
-        if not new_job['target']:
+        if not new_job.target:
             raise ConfigError('%s does not have a target name' % job_name)
-        require_placeholders(new_job['target'], ['date'], '%s: target')
-        if not new_job['deltas']:
+        require_placeholders(new_job.target, ['date'], '%s: target')
+        if not new_job.deltas:
             raise ConfigError('%s does not have any deltas defined' % job_name)
         if job_dict:
             raise ConfigError('%s has unsupported configuration values: %s' % (

@@ -37,7 +37,7 @@ def test_global_target():
       foo:
         deltas: 1d 2d 3d
         sources: sdf
-    """)['foo']['target'] == '$name-$date'
+    """)['foo'].target == '$name-$date'
 
 
 def test_no_deltas():
@@ -56,7 +56,7 @@ def test_global_deltas():
       foo:
         sources: /etc
         target: $date
-    """)['foo']['deltas']) == 3
+    """)['foo'].deltas) == 3
 
 
 def test_target_has_name():
@@ -107,8 +107,8 @@ def test_dateformat_inheritance():
         sources: /usr
         dateformat: "123"
     """)
-    assert r['foo']['dateformat'] == 'ABC'
-    assert r['bar']['dateformat'] == '123'
+    assert r['foo'].dateformat == 'ABC'
+    assert r['bar'].dateformat == '123'
 
 
 def test_unsupported_keys():
@@ -129,7 +129,7 @@ def test_single_source():
     jobs:
       foo:
         source: /etc
-    """)['foo']['sources'] == ['/etc']
+    """)['foo'].sources == ['/etc']
 
 
 def test_source_and_sources():

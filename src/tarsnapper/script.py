@@ -178,7 +178,7 @@ class Command(object):
     def validate_args(self, args):
         pass
 
-    def run(self, jobs):
+    def run(self, job):
         raise NotImplementedError()
 
 
@@ -187,24 +187,18 @@ class ListCommand(Command):
     help = 'list all the existing backups'
     description = 'For each job, output a sorted list of existing backups.'
 
-    def run(self, jobs):
-        # Make sure the list of archives has been queried. This is simply
-        # so we don't start to hang after having printed the first job
-        # header already within the loop.
-        self.backend.get_archives()
+    def run(self, job):
+        backups = self.backend.get_backups(job)
 
-        for job in jobs.values():
-            self.log.info('%s' % job.name)
+        self.log.info('%s' % job.name)
 
-            backups = self.backend.get_backups(job)
-
-            # Sort backups by time
-            # TODO: This duplicates code from the expire module. Should
-            # the list of backups always be returned sorted instead?
-            backups = [(name, time) for name, time in backups.items()]
-            backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
-            for backup, _ in backups:
-                print "  %s" % backup
+        # Sort backups by time
+        # TODO: This duplicates code from the expire module. Should
+        # the list of backups always be returned sorted instead?
+        backups = [(name, time) for name, time in backups.items()]
+        backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
+        for backup, _ in backups:
+            print "  %s" % backup
 
 
 class ExpireCommand(Command):
@@ -221,9 +215,8 @@ class ExpireCommand(Command):
     def expire(self, job):
         self.backend.expire(job)
 
-    def run(self, jobs):
-        for job_name, job in jobs.iteritems():
-            self.expire(job)
+    def run(self, job):
+        self.expire(job)
 
 
 class MakeCommand(ExpireCommand):
@@ -256,38 +249,37 @@ class MakeCommand(ExpireCommand):
                                 'need to specify at least one source path '
                                 'using --sources')
 
-    def run(self, jobs):
-        for job in jobs.values():
-            # Determine whether we can run this job. If any of the sources
-            # are missing, or any source directory is empty, we skip this job.
-            sources_missing = False
-            for source in job.sources:
-                if not path.exists(source):
-                    sources_missing = True
-                    break
-                if path.isdir(source) and not os.listdir(source):
-                    # directory is empty
-                    sources_missing = True
-                    break
+    def run(self, job):
+        # Determine whether we can run this job. If any of the sources
+        # are missing, or any source directory is empty, we skip this job.
+        sources_missing = False
+        for source in job.sources:
+            if not path.exists(source):
+                sources_missing = True
+                break
+            if path.isdir(source) and not os.listdir(source):
+                # directory is empty
+                sources_missing = True
+                break
 
-            # Do a new backup
-            skipped = False
+        # Do a new backup
+        skipped = False
 
-            if sources_missing:
-                if job.name:
-                    self.log.info(("Not backing up '%s', because not all given "
-                                   "sources exist") % job_name)
-                else:
-                    self.log.info("Not making backup, because not all given "
-                                  "sources exist")
-                skipped = True
+        if sources_missing:
+            if job.name:
+                self.log.info(("Not backing up '%s', because not all given "
+                               "sources exist") % job_name)
             else:
-                self.backend.make(job)
+                self.log.info("Not making backup, because not all given "
+                              "sources exist")
+            skipped = True
+        else:
+            self.backend.make(job)
 
-            # Expire old backups, but only bother if either we made a new
-            # backup, or if expire was explicitly requested.
-            if not skipped and not self.args.no_expire:
-                self.expire(job)
+        # Expire old backups, but only bother if either we made a new
+        # backup, or if expire was explicitly requested.
+        if not skipped and not self.args.no_expire:
+            self.expire(job)
 
 
 COMMANDS = {
@@ -420,7 +412,8 @@ def main(argv):
 
     command = args.command(args, log)
     try:
-        command.run(jobs_to_run)
+        for job in jobs_to_run.values():
+            command.run(job)
     except TarsnapError, e:
         log.fatal("tarsnap execution failed:\n%s" % e)
         return 1

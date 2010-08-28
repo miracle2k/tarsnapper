@@ -11,6 +11,21 @@ Simple wrapper around tarsnap which does two things:
   scheme.
 
 
+Installation
+============
+
+Use ``pip``::
+
+    $ apt-get install python-pip
+    $ pip install tarsnapper
+
+
+Or, ``easy_install``::
+
+    $ apt-get install python-setuptools
+    $ easy_install tarsnapper
+
+
 Basic usage
 ===========
 

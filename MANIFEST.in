@@ -1,0 +1,5 @@
+include README.rst LICENSE CHANGES simulate.py
+include scripts/tarsnapper
+
+recursive-include tests *
+recursive-exclude tests *.pyc

@@ -270,7 +270,7 @@ class MakeCommand(ExpireCommand):
         if sources_missing:
             if job.name:
                 self.log.info(("Not backing up '%s', because not all given "
-                               "sources exist") % job_name)
+                               "sources exist") % job.name)
             else:
                 self.log.info("Not making backup, because not all given "
                               "sources exist")

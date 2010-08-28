@@ -59,6 +59,14 @@ class TarsnapBackend(object):
             raise TarsnapError('%s' % p.stderr.read())
         return p.stdout
 
+    def exec_(self, cmdline):
+        self.log.debug("Executing: %s" % cmdline)
+        p = subprocess.Popen(cmdline, shell=True)
+        os.waitpid(p.pid, 0)
+        if p.returncode:
+            raise RuntimeError('%s failed with exit code %s' % (
+                cmdline, p.returncode))
+
     def _add_known_archive(self, name):
         """If we make a backup, store it's name in a separate list.
 
@@ -286,7 +294,13 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            self.backend.make(job)
+            if job.exec_before:
+                self.backend.exec_(job.exec_before)
+            try:
+                self.backend.make(job)
+            finally:
+                if job.exec_after:
+                    self.backend.exec_(job.exec_after)
 
         # Expire old backups, but only bother if either we made a new
         # backup, or if expire was explicitly requested.

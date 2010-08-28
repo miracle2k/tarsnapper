@@ -36,7 +36,10 @@ The config file
 
     jobs:
       images:
-        source: /home/michael/Images
+        source: /var/lib/mysql
+        exec:
+          before: service stop mysql
+          after: service start mysql
 
       some-other-job:
         sources:

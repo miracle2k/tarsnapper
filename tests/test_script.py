@@ -24,6 +24,9 @@ class FakeBackend(TarsnapBackend):
         if '--list-archives' in args:
             return StringIO("\n".join(self.fake_archives))
 
+    def exec_(self, cmdline):
+        self.calls.append(cmdline)
+
     def match(self, expect_calls):
         """Compare the calls we have captured with what the list of
         regexes in ``expect``.
@@ -67,14 +70,15 @@ class BaseTest(object):
             cmd.run(job)
         return cmd
 
-    def job(self, deltas='1d 2d', name='test'):
+    def job(self, deltas='1d 2d', name='test', **kwargs):
         """Make a job object.
         """
         return Job(
             target="$name-$date",
             deltas=parse_deltas(deltas),
             name=name,
-            sources=[self._tmpdir])
+            sources=[self._tmpdir],
+            **kwargs)
 
     def filename(self, delta, name='test', fmt='%s-%s'):
         return fmt % (
@@ -99,6 +103,14 @@ class TestMake(BaseTest):
             ('-c', '-f', 'test-.*', '.*'),
         ])
 
+    def test_exec(self):
+        cmd = self.run(self.job(exec_before="echo begin", exec_after="echo end"),
+                       [], no_expire=True)
+        assert cmd.backend.match([
+            ('echo begin'),
+            ('-c', '-f', 'test-.*', '.*'),
+            ('echo end'),
+        ])
 
 class TestExpire(BaseTest):
 

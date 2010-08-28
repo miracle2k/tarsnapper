@@ -40,6 +40,8 @@ class Job(object):
         self.dateformat = initial.get('dateformat')
         self.deltas = initial.get('deltas')
         self.sources = initial.get('sources')
+        self.exec_before = initial.get('exec_before')
+        self.exec_after = initial.get('exec_after')
 
 
 def require_placeholders(text, placeholders, what):
@@ -120,6 +122,8 @@ def load_config(text):
             'target': job_dict.pop('target', default_target),
             'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,
             'dateformat': job_dict.pop('dateformat', default_dateformat),
+            'exec_before': job_dict.pop('exec_before', None),
+            'exec_after': job_dict.pop('exec_after', None),
         })
         if not new_job.sources:
             raise ConfigError('%s does not define any sources' % job_name)

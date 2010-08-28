@@ -59,6 +59,7 @@ class BaseTest(object):
             'tarsnap_options': {},
             'no_expire': False,
         }
+        final_args.update(args)
         cmd = self.command_class(argparse.Namespace(**final_args),
                                  self.log, backend_class=FakeBackend)
         cmd.backend.fake_archives = archives
@@ -93,7 +94,7 @@ class TestMake(BaseTest):
         ])
 
     def test_no_expire(self):
-        cmd = self.run(self.job(), [], noexpire=True)
+        cmd = self.run(self.job(), [], no_expire=True)
         assert cmd.backend.match([
             ('-c', '-f', 'test-.*', '.*'),
         ])

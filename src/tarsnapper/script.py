@@ -163,10 +163,10 @@ class Command(object):
 
     BackendClass = TarsnapBackend
 
-    def __init__(self, args, log):
+    def __init__(self, args, log, backend_class=None):
         self.args = args
         self.log = log
-        self.backend = self.BackendClass(
+        self.backend = (backend_class or self.BackendClass)(
             self.log, self.args.tarsnap_options,
             dryrun=getattr(self.args, 'dryrun', False))
 

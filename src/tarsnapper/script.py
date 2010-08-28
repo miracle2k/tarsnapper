@@ -131,11 +131,13 @@ class TarsnapBackend(object):
         return target, now
 
 
+DEFAULT_DATEFORMAT = '%Y%m%d-%H%M%S'
+
 DATE_FORMATS = (
-    '%Y%m%d-%H%M%S',
+    DEFAULT_DATEFORMAT,
     '%Y%m%d-%H%M',
 )
-DEFAULT_DATEFORMAT = '%Y%m%d-%H%M%S'
+
 
 def parse_date(string, dateformat=None):
     """Parse a date string using either a list of builtin formats,

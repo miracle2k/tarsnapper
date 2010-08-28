@@ -4,22 +4,22 @@ Tarsnapper
 
 Simple wrapper around tarsnap which does two things:
 
-  - Let's you define "backup jobs" (tarsnap invocations) in a config file,
-    though this has little advantage over just using a a shell script.
+- Let's you define "backup jobs" (tarsnap invocations) in a config file,
+  though this has little advantage over just using a a shell script.
 
-  - The ability to expire old backups using a Grandfather-father-son backup
-    scheme.
+- The ability to expire old backups using a Grandfather-father-son backup
+  scheme.
 
 
 Basic usage
 ===========
 
-Create backups based on the jobs defined in the configuration file:
+Create backups based on the jobs defined in the configuration file::
 
     $ tarsnapper -c myconfigfile make
 
 Specify a job on the command line: In this case, we use the "expire"
-command, so no backups will be created, but only old backups deleted.
+command, so no backups will be created, but only old backups deleted::
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
 
@@ -29,6 +29,8 @@ and the command.
 
 The config file
 ===============
+
+Example::
 
     # Global values, valid for all jobs unless overridden:
     deltas: 1d 7d 30d
@@ -57,17 +59,17 @@ How expiring backups works
 
 The approach chosen tries to achieve the following:
 
-    * Do not require backup names to include information on which generation
-      a backup belongs to, like for example ``tarsnap-generations`` does.
-      That is, you can create your backups anyway you wish, and simply use
-      this utility to delete old backups.
+* Do not require backup names to include information on which generation
+  a backup belongs to, like for example ``tarsnap-generations`` does.
+  That is, you can create your backups anyway you wish, and simply use
+  this utility to delete old backups.
 
-    * Do not use any fixed generations (weekly, monthly etc), but freeform
-      timespans.
+* Do not use any fixed generations (weekly, monthly etc), but freeform
+  timespans.
 
-    * Similarily, do not make any assumptions about when or if backup jobs
-      have actually run or will run, but try to match the given deltas as
-      closely as possible.
+* Similarily, do not make any assumptions about when or if backup jobs
+  have actually run or will run, but try to match the given deltas as
+  closely as possible.
 
 The generations are defined by a list of deltas. ``60`` means a minute,
 ``12h`` is half a day, ``7d`` is a week. The number of backups in each

@@ -40,7 +40,8 @@ class TarsnapBackend(object):
         self.log = log
         self.options = options
         self.dryrun = dryrun
-        self._archive_list = None
+        self._queried_archives = None
+        self._known_archives = []
 
     def _call(self, *arguments):
         """
@@ -58,14 +59,23 @@ class TarsnapBackend(object):
             raise TarsnapError('%s' % p.stderr.read())
         return p.stdout
 
+    def _add_known_archive(self, name):
+        """If we make a backup, store it's name in a separate list.
+
+        This list can be combined with the one read from the server. This
+        means that when we create a new backup, we subsequently don't need
+        to requery the server.
+        """
+        self._known_archives.append(name)
+
     def get_archives(self):
         """A list of archives as returned by --list-archives. Queried
         the first time it is accessed, and then subsequently cached.
         """
-        if self._archive_list is None:
+        if self._queried_archives is None:
             response = self._call('--list-archives')
-            self._archive_list = [l.rstrip() for l in response.readlines()]
-        return self._archive_list
+            self._queried_archives = [l.rstrip() for l in response.readlines()]
+        return self._queried_archives + self._known_archives
     archives = property(get_archives)
 
     def get_backups(self, job):
@@ -126,7 +136,7 @@ class TarsnapBackend(object):
             self._call('-c', '-f', target, *job.sources)
         # Add the new backup the list of archives, so we have an up-to-date
         # list without needing to query again.
-        self.archives.append(target)
+        self._add_known_archive(target)
 
         return target, now
 

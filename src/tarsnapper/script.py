@@ -424,7 +424,7 @@ def main(argv):
     else:
         # Only a single job, as given on the command line
         jobs = {None: Job(**{'target': args.target, 'dateformat': args.dateformat,
-                       '      deltas': args.deltas, 'sources': args.sources})}
+                             'deltas': args.deltas, 'sources': args.sources})}
 
     # Validate the requested list of jobs to run
     if args.jobs:

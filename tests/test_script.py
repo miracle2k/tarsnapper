@@ -19,12 +19,12 @@ class FakeBackend(TarsnapBackend):
         self.calls = []
         self.fake_archives = []
 
-    def _call(self, *args):
-        self.calls.append(args)
+    def _exec_tarsnap(self, args):
+        self.calls.append(args[1:])  # 0 is "tarsnap"
         if '--list-archives' in args:
             return StringIO("\n".join(self.fake_archives))
 
-    def exec_(self, cmdline):
+    def _exec_util(self, cmdline):
         self.calls.append(cmdline)
 
     def match(self, expect_calls):
@@ -59,7 +59,7 @@ class BaseTest(object):
 
     def run(self, jobs, archives, **args):
         final_args = {
-            'tarsnap_options': {},
+            'tarsnap_options': (),
             'no_expire': False,
         }
         final_args.update(args)
@@ -111,6 +111,7 @@ class TestMake(BaseTest):
             ('-c', '-f', 'test-.*', '.*'),
             ('echo end'),
         ])
+
 
 class TestExpire(BaseTest):
 

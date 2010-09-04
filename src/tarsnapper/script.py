@@ -43,26 +43,34 @@ class TarsnapBackend(object):
         self._queried_archives = None
         self._known_archives = []
 
-    def _call(self, *arguments):
+    def call(self, *arguments):
         """
         ``arguments`` is a single list of strings.
         """
         call_with = ['tarsnap']
         call_with.extend(arguments)
-        for key, value in self.options:
-            call_with.extend(["--%s" % key, value])
-        self.log.debug("Executing: %s" % " ".join(call_with))
-        p = subprocess.Popen(call_with, stdout=subprocess.PIPE,
+        for option in self.options:
+            key = option[0]
+            pre = "-" if len(key) == 1 else "--"
+            call_with.append("%s%s" % (pre, key))
+            for value in option[1:]:
+                call_with.append(value)
+        return self._exec_tarsnap(call_with)
+
+    def _exec_tarsnap(self, args):
+        self.log.debug("Executing: %s" % " ".join(args))
+        p = subprocess.Popen(args, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         p.wait()
         if p.returncode != 0:
             raise TarsnapError('%s' % p.stderr.read())
         return p.stdout
 
-    def exec_(self, cmdline):
+    def _exec_util(self, cmdline, shell=False):
+        # TODO: can this be merged with _exec_tarsnap into something generic?
         self.log.debug("Executing: %s" % cmdline)
         p = subprocess.Popen(cmdline, shell=True)
-        os.waitpid(p.pid, 0)
+        p.wait()
         if p.returncode:
             raise RuntimeError('%s failed with exit code %s' % (
                 cmdline, p.returncode))
@@ -81,7 +89,7 @@ class TarsnapBackend(object):
         the first time it is accessed, and then subsequently cached.
         """
         if self._queried_archives is None:
-            response = self._call('--list-archives')
+            response = self.call('--list-archives')
             self._queried_archives = [l.rstrip() for l in response.readlines()]
         return self._queried_archives + self._known_archives
     archives = property(get_archives)
@@ -124,7 +132,7 @@ class TarsnapBackend(object):
             if not name in to_keep:
                 self.log.info('Deleting %s' % name)
                 if not self.dryrun:
-                    self._call('-d', '-f', name)
+                    self.call('-d', '-f', name)
                 self.archives.remove(name)
             else:
                 self.log.debug('Keeping %s' % name)
@@ -141,7 +149,7 @@ class TarsnapBackend(object):
             self.log.info('Creating backup: %s' % target)
 
         if not self.dryrun:
-            self._call('-c', '-f', target, *job.sources)
+            self.call('-c', '-f', target, *job.sources)
         # Add the new backup the list of archives, so we have an up-to-date
         # list without needing to query again.
         self._add_known_archive(target)
@@ -295,12 +303,12 @@ class MakeCommand(ExpireCommand):
             skipped = True
         else:
             if job.exec_before:
-                self.backend.exec_(job.exec_before)
+                self.backend._exec_util(job.exec_before)
             try:
                 self.backend.make(job)
             finally:
                 if job.exec_after:
-                    self.backend.exec_(job.exec_after)
+                    self.backend._exec_util(job.exec_after)
 
         # Expire old backups, but only bother if either we made a new
         # backup, or if expire was explicitly requested.
@@ -323,9 +331,11 @@ def parse_args(argv):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-q', action='store_true', dest='quiet', help='be quiet')
     group.add_argument('-v', action='store_true', dest='verbose', help='be verbose')
-    parser.add_argument('-o', metavar=('name', 'value'), nargs=2,
+    # We really want nargs=(1,2), but since this isn't available, we can
+    # just asl well support an arbitrary number of values for each -o.
+    parser.add_argument('-o', metavar=('name', 'value'), nargs='+',
                         dest='tarsnap_options', default=[], action='append',
-                        help='option to pass to tarsnap')
+                        help='option to pass to tarsnap',)
     parser.add_argument('--config', '-c', help='use the given config file')
 
     group = parser.add_argument_group(

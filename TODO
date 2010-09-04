@@ -1,4 +1,4 @@
-Presuming tarsnap doesn't already take care of thism, a lock file
+Presuming tarsnap doesn't already take care of this, a lock file
 should be used to prevent the same config file to be processed
 by multiple instances at the same time.
 
@@ -7,5 +7,14 @@ Support globbing when specifying sources.
 Support includes, for example also "include /var/lib/vz/*/backup.conf"
 to load the backup files for all virtual machines.
 
+A way to expire a set of backups, without explicitely specifying each
+individual job. I.e., say a server creates the backups, but the
+delete-permission key is on a different machine. That second machine
+wouldn't need a copy of the config file (or many config files, if includes
+are used), and instead could expire all backup sets with a single command,
+like: tarsnapper expire --regex "$name-$date".
+
 Properly support exclude functionality.
 
+Multiple manually specified dateformat values may make sense, if
+needing to parse a set of already existing archives.

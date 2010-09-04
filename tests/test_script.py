@@ -136,6 +136,15 @@ class TestExpire(BaseTest):
             ('-d', '-f', 'test-.*'),
         ])
 
+    def test_date_name_mismatch(self):
+        """Make sure that when processing a target "home-$date",
+        we won't stumble over "home-dev-$date". This can be an issue
+        due to the way we try to parse the dates in filenames.
+        """
+        cmd = self.run(self.job(name="home"), [
+            self.filename('1d', name="home-dev"),
+        ])
+
 
 class TestList(BaseTest):
 

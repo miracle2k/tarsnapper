@@ -107,8 +107,22 @@ class TarsnapBackend(object):
             match = regex.match(backup_path)
             if not match:
                 continue
-            date = parse_date(match.groupdict()['date'], job.dateformat)
-            backups[backup_path] = date
+            try:
+                date = parse_date(match.groupdict()['date'], job.dateformat)
+            except ValueError, e:
+                # This can occasionally happen when multiple archives
+                # share a prefix, say for example you have "windows-$date"
+                # and "windows-data-$date". Since we have to use a generic
+                # .* regex to capture the date part, when processing the
+                # "windows-$date" targets, we'll stumble over entries where
+                # we try to parse "data-$date" as a date. Make sure we
+                # only print a warning, rather than crashing.
+                # TODO: It'd take some work, but we could build a proper
+                # regex based on any given date format string, thus avoiding
+                # the issue for most cases.
+                self.log.error("Ignoring '%s': %s" % (backup_path, e))
+            else:
+                backups[backup_path] = date
 
         return backups
 

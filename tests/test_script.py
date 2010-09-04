@@ -86,6 +86,33 @@ class BaseTest(object):
             (self.now - str_to_timedelta(delta)).strftime(DEFAULT_DATEFORMAT))
 
 
+class TestTarsnapOptions(BaseTest):
+
+    command_class = ExpireCommand
+
+    def tset_parse(self):
+        parse_args(['-o', 'name', 'foo', '-', 'list'])
+        parse_args(['-o', 'name', '-', 'list'])
+        parse_args(['-o', 'name', 'sdf', 'sdf', '-', 'list'])
+
+    def test_pass_along(self):
+        # Short option
+        cmd = self.run(self.job(), [], tarsnap_options=(('o', '1'),))
+        assert cmd.backend.match([('--list-archives', '-o', '1')])
+
+        # Long option
+        cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1'),))
+        assert cmd.backend.match([('--list-archives', '--foo', '1')])
+
+        # No value
+        cmd = self.run(self.job(), [], tarsnap_options=(('foo',),))
+        assert cmd.backend.match([('--list-archives', '--foo',)])
+
+        # Multiple values
+        cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1', '2'),))
+        assert cmd.backend.match([('--list-archives', '--foo', '1', '2')])
+
+
 class TestMake(BaseTest):
 
     command_class = MakeCommand

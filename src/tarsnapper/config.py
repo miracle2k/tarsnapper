@@ -40,6 +40,7 @@ class Job(object):
         self.dateformat = initial.get('dateformat')
         self.deltas = initial.get('deltas')
         self.sources = initial.get('sources')
+        self.force = initial.get('force')
         self.exec_before = initial.get('exec_before')
         self.exec_after = initial.get('exec_after')
 
@@ -120,6 +121,7 @@ def load_config(text):
             'name': job_name,
             'sources': sources,
             'target': job_dict.pop('target', default_target),
+            'force': job_dict.pop('force', False),
             'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,
             'dateformat': job_dict.pop('dateformat', default_dateformat),
             'exec_before': job_dict.pop('exec_before', None),

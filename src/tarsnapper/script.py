@@ -295,14 +295,15 @@ class MakeCommand(ExpireCommand):
         # Determine whether we can run this job. If any of the sources
         # are missing, or any source directory is empty, we skip this job.
         sources_missing = False
-        for source in job.sources:
-            if not path.exists(source):
-                sources_missing = True
-                break
-            if path.isdir(source) and not os.listdir(source):
-                # directory is empty
-                sources_missing = True
-                break
+        if not job.force:
+            for source in job.sources:
+                if not path.exists(source):
+                    sources_missing = True
+                    break
+                if path.isdir(source) and not os.listdir(source):
+                    # directory is empty
+                    sources_missing = True
+                    break
 
         # Do a new backup
         skipped = False

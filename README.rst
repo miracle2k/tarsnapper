@@ -54,9 +54,8 @@ Example::
     jobs:
       images:
         source: /var/lib/mysql
-        exec:
-          before: service stop mysql
-          after: service start mysql
+        exec_before: service stop mysql
+        exec_after: service start mysql
 
       some-other-job:
         sources:

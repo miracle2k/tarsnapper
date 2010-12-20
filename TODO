@@ -6,6 +6,9 @@ Allow *_exec commands to create a temporary directory that can be backed;
 currently this is problematic because you cannot specify a dynamically 
 created directory in the "source" option.
 
+Support alternative names per backup job. This allows a graceful rename
+of a backup job.
+
 Support globbing when specifying sources.
 
 Support includes, for example also "include /var/lib/vz/*/backup.conf"

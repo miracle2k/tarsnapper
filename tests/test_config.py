@@ -12,6 +12,40 @@ def test_empty_config():
     """)
 
 
+def test_aliases():
+    """Loading of the "alias" option."""
+    assert load_config("""
+    jobs:
+      foo:
+        target: foo-$date
+        alias: foo
+    """)['foo'].aliases == ['foo']
+    assert load_config("""
+    jobs:
+      foo:
+        target: foo-$date
+        aliases:
+          - foo
+    """)['foo'].aliases == ['foo']
+
+
+def test_excludes():
+    """Loading of the "excludes" option."""
+    assert load_config("""
+    jobs:
+      foo:
+        target: foo-$date
+        exclude: foo
+    """)['foo'].excludes == ['foo']
+    assert load_config("""
+    jobs:
+      foo:
+        target: foo-$date
+        excludes:
+          - foo
+    """)['foo'].excludes == ['foo']
+
+
 def test_no_sources():
     # It's ok to load a backup job file without sources
     load_config("""
@@ -165,6 +199,19 @@ def test_alias_and_aliases():
       foo:
         alias: doo
         aliases:
+          loo
+          moo
+    """)
+
+def test_exclude_and_excludes():
+    """You can't use both options at the same time."""
+    assert_raises(ConfigError, load_config, """
+    target: $name-$date
+    deltas: 1d 2d
+    jobs:
+      foo:
+        exclude: doo
+        excludes:
           loo
           moo
     """)

@@ -41,6 +41,7 @@ class Job(object):
         self.dateformat = initial.get('dateformat')
         self.deltas = initial.get('deltas')
         self.sources = initial.get('sources')
+        self.excludes = initial.get('excludes', [])
         self.force = initial.get('force')
         self.exec_before = initial.get('exec_before')
         self.exec_after = initial.get('exec_after')
@@ -112,6 +113,7 @@ def load_config(text):
         raise ConfigError('config must define at least one job')
     for job_name, job_dict in jobs_section.iteritems():
         job_dict = job_dict or {}
+        # sources
         if 'sources' in job_dict and 'source' in job_dict:
             raise ConfigError(('%s: Use either the "source" or "sources" '+
                               'option, not both') % job_name)
@@ -119,6 +121,7 @@ def load_config(text):
             sources = [job_dict.pop('source')]
         else:
             sources = job_dict.pop('sources', None)
+        # aliases
         if 'aliases' in job_dict and 'alias' in job_dict:
             raise ConfigError(('%s: Use either the "alias" or "aliases" '+
                               'option, not both') % job_name)
@@ -126,10 +129,19 @@ def load_config(text):
             aliases = [job_dict.pop('alias')]
         else:
             aliases = job_dict.pop('aliases', None)
+        # excludes
+        if 'excludes' in job_dict and 'exclude' in job_dict:
+            raise ConfigError(('%s: Use either the "excludes" or "exclude" '+
+                              'option, not both') % job_name)
+        if 'exclude' in job_dict:
+            excludes = [job_dict.pop('exclude')]
+        else:
+            excludes = job_dict.pop('excludes', [])
         new_job = Job(**{
             'name': job_name,
             'sources': sources,
             'aliases': aliases,
+            'excludes': excludes,
             'target': job_dict.pop('target', default_target),
             'force': job_dict.pop('force', False),
             'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,

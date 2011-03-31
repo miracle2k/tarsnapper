@@ -174,7 +174,11 @@ class TarsnapBackend(object):
             self.log.info('Creating backup: %s' % target)
 
         if not self.dryrun:
-            self.call('-c', '-f', target, *job.sources)
+            args = ['-c']
+            [args.extend(['--exclude', e]) for e in job.excludes]
+            args.extend(['-f', target])
+            args.extend(job.sources)
+            self.call(*args)
         # Add the new backup the list of archives, so we have an up-to-date
         # list without needing to query again.
         self._add_known_archive(target)

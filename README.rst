@@ -54,6 +54,7 @@ Example::
     jobs:
       images:
         source: /var/lib/mysql
+        exclude: /var/lib/mysql/temp
         exec_before: service stop mysql
         exec_after: service start mysql
         # Aliases can be used when renaming a job to match old archives.
@@ -63,6 +64,8 @@ Example::
         sources:
           - /var/dir/1
           - /etc/google
+        excludes:
+          - /etc/google/cache
         target: /custom-target-$date.zip
         deltas: 1h 6h 1d 7d 24d 180d
 

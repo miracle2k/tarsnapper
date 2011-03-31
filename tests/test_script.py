@@ -128,9 +128,14 @@ class TestMake(BaseTest):
     def test_no_sources(self):
         """If no sources are defined, the job is skipped."""
         cmd = self.run(self.job(sources=None), [])
-        assert cmd.backend.match([
-        ])
+        assert cmd.backend.match([])
 
+    def test_excludes(self):
+        cmd = self.run(self.job(excludes=['foo']), [])
+        assert cmd.backend.match([
+            ('-c', '--exclude', 'foo', '-f', 'test-.*', '.*'),
+            ('--list-archives',)
+        ])
 
     def test_no_expire(self):
         cmd = self.run(self.job(), [], no_expire=True)

@@ -36,6 +36,7 @@ class Job(object):
 
     def __init__(self, **initial):
         self.name = initial.get('name')
+        self.aliases = initial.get('aliases')
         self.target = initial.get('target')
         self.dateformat = initial.get('dateformat')
         self.deltas = initial.get('deltas')
@@ -117,9 +118,17 @@ def load_config(text):
             sources = [job_dict.pop('source')]
         else:
             sources = job_dict.pop('sources', None)
+        if 'aliases' in job_dict and 'alias' in job_dict:
+            raise ConfigError(('%s: Use either the "alias" or "aliases" '+
+                              'option, not both') % job_name)
+        if 'alias' in job_dict:
+            aliases = [job_dict.pop('alias')]
+        else:
+            aliases = job_dict.pop('aliases', None)
         new_job = Job(**{
             'name': job_name,
             'sources': sources,
+            'aliases': aliases,
             'target': job_dict.pop('target', default_target),
             'force': job_dict.pop('force', False),
             'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,

@@ -135,6 +135,7 @@ def test_single_source():
 
 
 def test_source_and_sources():
+    """You can't use both options at the same time."""
     assert_raises(ConfigError, load_config, """
     target: $name-$date
     deltas: 1d 2d
@@ -144,4 +145,17 @@ def test_source_and_sources():
         sources:
           /usr
           /var
+    """)
+
+def test_alias_and_aliases():
+    """You can't use both options at the same time."""
+    assert_raises(ConfigError, load_config, """
+    target: $name-$date
+    deltas: 1d 2d
+    jobs:
+      foo:
+        alias: doo
+        aliases:
+          loo
+          moo
     """)

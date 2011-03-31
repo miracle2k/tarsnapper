@@ -98,14 +98,25 @@ class TarsnapBackend(object):
         """Return a dict of backups that exist for the given job, by
         parsing the list of archives.
         """
+        # Assemble regular expressions that matche the job's target
+        # filenames, including those based on it's aliases.
         unique = uuid.uuid4().hex
-        target = Template(job.target).substitute({'name': job.name, 'date': unique})
-        regex = re.compile("^%s$" % re.escape(target).replace(unique, '(?P<date>.*?)'))
+        regexes = []
+        for possible_name in [job.name] + (job.aliases or []):
+            target = Template(job.target).substitute(
+                {'name': possible_name, 'date': unique})
+            regexes.append(re.compile("^%s$" %
+                        re.escape(target).replace(unique, '(?P<date>.*?)')))
 
         backups = {}
         for backup_path in self.get_archives():
-            match = regex.match(backup_path)
-            if not match:
+            match = None
+            for regex in regexes:
+                match = regex.match(backup_path)
+                if match:
+                    break
+            else:
+                # Not one of the regexes matched.
                 continue
             try:
                 date = parse_date(match.groupdict()['date'], job.dateformat)

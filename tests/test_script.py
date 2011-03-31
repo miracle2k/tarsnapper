@@ -182,6 +182,16 @@ class TestExpire(BaseTest):
             ('-d', '-f', 'test-.*'),
         ])
 
+    def test_aliases(self):
+        cmd = self.run(self.job(deltas='1d 2d', aliases=['alias']), [
+            self.filename('1d'),
+            self.filename('5d', name='alias'),
+        ])
+        assert cmd.backend.match([
+            ('--list-archives',),
+            ('-d', '-f', 'alias-.*'),
+        ])
+
     def test_date_name_mismatch(self):
         """Make sure that when processing a target "home-$date",
         we won't stumble over "home-dev-$date". This can be an issue

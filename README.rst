@@ -56,6 +56,8 @@ Example::
         source: /var/lib/mysql
         exec_before: service stop mysql
         exec_after: service start mysql
+        # Aliases can be used when renaming a job to match old archives.
+        alias: img
 
       some-other-job:
         sources:

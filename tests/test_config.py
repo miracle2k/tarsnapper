@@ -41,6 +41,15 @@ def test_global_target():
     """)['foo'].target == '$name-$date'
 
 
+def test_empty_job():
+    """An empty job may be valid in some cases."""
+    assert load_config("""
+    target: $name-$date
+    jobs:
+      foo:
+    """)['foo']
+
+
 def test_no_deltas():
     # It's ok to load a job without deltas
     load_config("""

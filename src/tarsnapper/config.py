@@ -111,6 +111,7 @@ def load_config(text):
     if not jobs_section:
         raise ConfigError('config must define at least one job')
     for job_name, job_dict in jobs_section.iteritems():
+        job_dict = job_dict or {}
         if 'sources' in job_dict and 'source' in job_dict:
             raise ConfigError(('%s: Use either the "source" or "sources" '+
                               'option, not both') % job_name)

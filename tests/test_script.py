@@ -73,12 +73,13 @@ class BaseTest(object):
     def job(self, deltas='1d 2d', name='test', **kwargs):
         """Make a job object.
         """
-        return Job(
+        opts = dict(
             target="$name-$date",
             deltas=parse_deltas(deltas),
             name=name,
-            sources=[self._tmpdir],
-            **kwargs)
+            sources=[self._tmpdir])
+        opts.update(kwargs)
+        return Job(**opts)
 
     def filename(self, delta, name='test', fmt='%s-%s'):
         return fmt % (
@@ -124,6 +125,13 @@ class TestMake(BaseTest):
             ('--list-archives',)
         ])
 
+    def test_no_sources(self):
+        """If no sources are defined, the job is skipped."""
+        cmd = self.run(self.job(sources=None), [])
+        assert cmd.backend.match([
+        ])
+
+
     def test_no_expire(self):
         cmd = self.run(self.job(), [], no_expire=True)
         assert cmd.backend.match([
@@ -131,6 +139,8 @@ class TestMake(BaseTest):
         ])
 
     def test_exec(self):
+        """Test ``exec_before`` and ``exec_after`` options.
+        """
         cmd = self.run(self.job(exec_before="echo begin", exec_after="echo end"),
                        [], no_expire=True)
         assert cmd.backend.match([
@@ -152,6 +162,15 @@ class TestExpire(BaseTest):
         assert cmd.backend.match([
             ('--list-archives',)
         ])
+
+    def test_no_deltas(self):
+        """If a job does not define deltas, we skip it."""
+        cmd = self.run(self.job(deltas=None), [
+            self.filename('1d'),
+            self.filename('5d'),
+        ])
+        assert cmd.backend.match([])
+
 
     def test_something_to_expire(self):
         cmd = self.run(self.job(deltas='1d 2d'), [

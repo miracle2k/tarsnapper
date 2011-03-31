@@ -255,6 +255,10 @@ class ExpireCommand(Command):
                             help='only simulate, don\'t delete anything')
 
     def expire(self, job):
+        if not job.deltas:
+            self.log.info(("Skipping '%s', does not define deltas") % job.name)
+            return
+
         self.backend.expire(job)
 
     def run(self, job):
@@ -292,6 +296,10 @@ class MakeCommand(ExpireCommand):
                                 'using --sources')
 
     def run(self, job):
+        if not job.sources:
+            self.log.info(("Skipping '%s', does not define sources") % job.name)
+            return
+
         # Determine whether we can run this job. If any of the sources
         # are missing, or any source directory is empty, we skip this job.
         sources_missing = False

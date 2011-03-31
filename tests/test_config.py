@@ -13,7 +13,8 @@ def test_empty_config():
 
 
 def test_no_sources():
-    assert_raises(ConfigError, load_config, """
+    # It's ok to load a backup job file without sources
+    load_config("""
     jobs:
       foo:
         deltas: 1d 2d 3d
@@ -41,7 +42,8 @@ def test_global_target():
 
 
 def test_no_deltas():
-    assert_raises(ConfigError, load_config, """
+    # It's ok to load a job without deltas
+    load_config("""
     jobs:
       foo:
         sources: /etc

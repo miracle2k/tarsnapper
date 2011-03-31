@@ -127,13 +127,11 @@ def load_config(text):
             'exec_before': job_dict.pop('exec_before', None),
             'exec_after': job_dict.pop('exec_after', None),
         })
-        if not new_job.sources:
-            raise ConfigError('%s does not define any sources' % job_name)
         if not new_job.target:
             raise ConfigError('%s does not have a target name' % job_name)
+        # Note: It's ok to define jobs without sources or deltas. Those
+        # can only be used for selected commands, then.
         require_placeholders(new_job.target, ['date'], '%s: target')
-        if not new_job.deltas:
-            raise ConfigError('%s does not have any deltas defined' % job_name)
         if job_dict:
             raise ConfigError('%s has unsupported configuration values: %s' % (
                 job_name, ", ".join(job_dict.keys())))

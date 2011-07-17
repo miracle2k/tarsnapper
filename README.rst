@@ -2,7 +2,7 @@
 Tarsnapper
 ==========
 
-Simple wrapper around tarsnap which does two things:
+Simple wrapper around the tarsnap and ddar backup tools which does two things:
 
 - Let's you define "backup jobs" (tarsnap invocations) in a config file,
   though this has little advantage over just using a a shell script.
@@ -68,6 +68,17 @@ Example::
           - /etc/google/cache
         target: /custom-target-$date.zip
         deltas: 1h 6h 1d 7d 24d 180d
+
+       ddar-job:
+         source: bla
+         using: ddar
+         target: me@remote:/backup
+         name: $name-$date
+
+
+ddar will execute a command line like:
+
+    tar c $SOURCES --exclude $EXCLUDE | gzip --rsyncable | ddar cf $TARGET -n $name
 
 For the ``images`` job, the global target will be used, with the ``name``
 placeholder replaced by the backup job name, in this case ``images``.

@@ -48,13 +48,13 @@ class TarsnapBackend(object):
         ``arguments`` is a single list of strings.
         """
         call_with = ['tarsnap']
-        call_with.extend(arguments)
         for option in self.options:
             key = option[0]
             pre = "-" if len(key) == 1 else "--"
             call_with.append("%s%s" % (pre, key))
             for value in option[1:]:
                 call_with.append(value)
+        call_with.extend(arguments)
         return self._exec_tarsnap(call_with)
 
     def _exec_tarsnap(self, args):

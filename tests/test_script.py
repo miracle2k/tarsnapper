@@ -99,19 +99,19 @@ class TestTarsnapOptions(BaseTest):
     def test_pass_along(self):
         # Short option
         cmd = self.run(self.job(), [], tarsnap_options=(('o', '1'),))
-        assert cmd.backend.match([('--list-archives', '-o', '1')])
+        assert cmd.backend.match([('-o', '1', '--list-archives')])
 
         # Long option
         cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1'),))
-        assert cmd.backend.match([('--list-archives', '--foo', '1')])
+        assert cmd.backend.match([('--foo', '1', '--list-archives')])
 
         # No value
         cmd = self.run(self.job(), [], tarsnap_options=(('foo',),))
-        assert cmd.backend.match([('--list-archives', '--foo',)])
+        assert cmd.backend.match([('--foo', '--list-archives')])
 
         # Multiple values
         cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1', '2'),))
-        assert cmd.backend.match([('--list-archives', '--foo', '1', '2')])
+        assert cmd.backend.match([('--foo', '1', '2', '--list-archives')])
 
 
 class TestMake(BaseTest):

@@ -2,25 +2,22 @@
 Tarsnapper
 ==========
 
-Simple wrapper around tarsnap which does two things:
+A wrapper around tarsnap which does two things:
 
 - Let's you define "backup jobs" (tarsnap invocations) in a config file,
-  though this has little advantage over just using a a shell script.
+  though on it's own this has little advantage over just using a a shell
+  script.
 
 - The ability to expire old backups using a Grandfather-father-son backup
-  scheme.
+  scheme. This feature can be used in conjunction with tarsnapper
+  backup jobs, or standalone, to be applied to any existing set of
+  tarsnap backup archives, regardless of how they have been created.
 
 
 Installation
 ============
 
-Use ``pip``::
-
-    $ apt-get install python-pip
-    $ pip install tarsnapper
-
-
-Or, ``easy_install``::
+Using ``easy_install``::
 
     $ apt-get install python-setuptools
     $ easy_install tarsnapper
@@ -29,17 +26,37 @@ Or, ``easy_install``::
 Basic usage
 ===========
 
-Create backups based on the jobs defined in the configuration file::
+Create backups based on the jobs defined in the configuration file (see
+below for information about the config file format)::
 
     $ tarsnapper -c myconfigfile make
+
 
 Specify a job on the command line: In this case, we use the "expire"
 command, so no backups will be created, but only old backups deleted::
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
 
+The --target argument selects which set of backups to apply the expire
+operation to. tarsnapper will try to match the archives it finds into
+the given delta range, and will delete those which seem unnecessary.
+
 Note the single "-" that needs to be given between the --deltas argument
 and the command.
+
+The ``expire`` command supports a ``--dry-run`` argument that will allow
+you to see what would be deleted:
+
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
+
+
+If you need to pass arguments through to tarsnap, you can do this as well:
+
+    $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
+
+This will use ``tarsnap.conf`` as the tarsnap configuration file,
+``tarnspapper.conf`` as the tarsnapper configuration file, and will also
+put tarsnap into verbose mode via the ``-v`` flag.
 
 
 The config file

@@ -46,6 +46,15 @@ class Job(object):
         self.exec_before = initial.get('exec_before')
         self.exec_after = initial.get('exec_after')
 
+    def resolve_sources(self):
+        return self._resolve(self.sources)
+
+    def resolve_excludes(self):
+        return self._resolve(self.excludes)
+
+    def _resolve(self, paths):
+        return foo(paths)
+
 
 def require_placeholders(text, placeholders, what):
     """Ensure that ``text`` contains the given placeholders.

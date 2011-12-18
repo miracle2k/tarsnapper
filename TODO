@@ -9,8 +9,6 @@ created directory in the "source" option.
 Support alternative names per backup job. This allows a graceful rename
 of a backup job.
 
-Support globbing when specifying sources.
-
 Support includes, for example also "include /var/lib/vz/*/backup.conf"
 to load the backup files for all virtual machines.
 

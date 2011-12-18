@@ -86,8 +86,58 @@ Example::
         target: /custom-target-$date.zip
         deltas: 1h 6h 1d 7d 24d 180d
 
-For the ``images`` job, the global target will be used, with the ``name``
-placeholder replaced by the backup job name, in this case ``images``.
+
+The example tries to show most of the features.
+
+- Configuration values defined on the root level outside of a job
+  definition are used as default values for every job. The ``$name``
+  placeholder will be replaced by the name of each job.
+
+- The backup sources can be specified using ``sources``, which expects
+  a list of source paths as children::
+
+    sources:
+       - /usr
+       - /home/*/.ssh
+
+  Or, if only a single path is needed, ``source`` can be used for
+  simplicity::
+
+    source: /var/lib/mysql
+
+  As you can see, you may use glob patterns. The globbing is done by
+  tarsnapper, not the shell. If you install the ``glob2`` library
+  (``easy_install glob2``), you are also able to do recursive globbing:
+
+    source: /home/me/Development/**/TODO
+
+  Note: You may specify relative paths. They will be considered relative
+  to the location of the configuration file.
+
+- To exclude files from a backup set, use ``excludes`` or ``exclude``.
+  These two options work exactly the same as ``sources`` or ``source``,
+  respectively.
+
+- Use ``target`` to specify the backup archive name, like you would using
+  tarsnap directly. You want to use the ``$date`` placeholder, which will be
+  replaced with the current timestamp at the time of the backup.
+
+  If you define a global ``target`` value, then use the ``$name``
+  placeholder, which will be replaced by the name of the backup job.
+
+- ``deltas`` is a space-separated list of timespans which are used to
+  determine which backups are kept and which are to be deleted, during
+  the "expire" stage. Valid prefixes are ``s``, ``h`` and ``d``, for
+  seconds, hours and days, respectively. See below for more details
+  on how the expiring works.
+
+- If you need to run something before a backup job, use ``exec_before``.
+  The command will be run via a subshell. There is also ``exec_after``
+  if you need to do cleanup.
+
+- If you rename a backup job, specify a list of old names via
+  ``alias``. When determining which existing archives belong to a
+  backup job, archive names are also matched against the aliases.
 
 
 How expiring backups works

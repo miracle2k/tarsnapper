@@ -2,6 +2,7 @@ import sys, os
 from os import path
 import uuid
 import subprocess
+from StringIO import StringIO
 import re
 from string import Template
 from datetime import datetime, timedelta
@@ -61,16 +62,16 @@ class TarsnapBackend(object):
         self.log.debug("Executing: %s" % " ".join(args))
         p = subprocess.Popen(args, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        p.wait()
+        (stdout, _) = p.communicate()
         if p.returncode != 0:
             raise TarsnapError('%s' % p.stderr.read())
-        return p.stdout
+        return stdout
 
     def _exec_util(self, cmdline, shell=False):
         # TODO: can this be merged with _exec_tarsnap into something generic?
         self.log.debug("Executing: %s" % cmdline)
         p = subprocess.Popen(cmdline, shell=True)
-        p.wait()
+        p.communicate()
         if p.returncode:
             raise RuntimeError('%s failed with exit code %s' % (
                 cmdline, p.returncode))
@@ -89,7 +90,7 @@ class TarsnapBackend(object):
         the first time it is accessed, and then subsequently cached.
         """
         if self._queried_archives is None:
-            response = self.call('--list-archives')
+            response = StringIO(self.call('--list-archives'))
             self._queried_archives = [l.rstrip() for l in response.readlines()]
         return self._queried_archives + self._known_archives
     archives = property(get_archives)

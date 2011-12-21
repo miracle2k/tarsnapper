@@ -4,7 +4,7 @@ Tarsnapper
 
 A wrapper around tarsnap which does two things:
 
-- Let's you define "backup jobs" (tarsnap invocations) in a config file,
+- Lets you define "backup jobs" (tarsnap invocations) in a config file,
   though on it's own this has little advantage over just using a a shell
   script.
 

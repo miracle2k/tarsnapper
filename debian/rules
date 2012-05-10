@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+DEB_PYTHON_SYSTEM := pysupport
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/python-distutils.mk
+
+clean::
+	rm -rf build build-stamp configure-stamp build/ MANIFEST
+	dh_clean
+
+# TODO install manpage
+#override_dh_auto_build-indep::
+#	rst2man README.rst > debian/tarsnapper.1 && dh_installman debian/tarsnapper.1
+#	dh_auto_build

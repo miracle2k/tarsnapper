@@ -1,0 +1,16 @@
+Source: tarsnapper
+Section: net
+Priority: extra
+Maintainer: Joenio Costa <joenio@perl.org.br>
+Build-Depends: debhelper (>= 5), python-support, python-all-dev, python-docutils
+Standards-Version: 3.9.3.1
+
+Package: tarsnapper
+Architecture: all
+Homepage: http://github.com/miracle2k/tarsnapper
+Depends: ${shlibs:Depends}, ${python:Depends}, tarsnap, python-yaml, python-argparse
+Description: tarsnapper is a wrapper around tarsnap backup tool
+ Tarsnapper is a wrapper around tarsnap which does two things: (1) Lets you
+ define "backup jobs" (tarsnap invocations) in a config file, though on it's own
+ this has little advantage over just using a a shell script; (2) The ability to
+ expire old backups using a Grandfather-father-son backup scheme.

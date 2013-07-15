@@ -1,6 +1,6 @@
 /tarsnapper.wpr
 /.idea/
-/BRANCH_TODO
+/LOCAL_TODO
 *.pyc
 
 /build/

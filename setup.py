@@ -44,6 +44,6 @@ setup(name='tarsnapper',
       license='BSD',
       packages=['tarsnapper'],
       package_dir = {'tarsnapper': 'src/tarsnapper'},
-      install_requires = ['argpars>==1.1', 'pyyaml>=3.09'],
+      install_requires = ['argparse>=1.1', 'pyyaml>=3.09'],
       **kw
 )

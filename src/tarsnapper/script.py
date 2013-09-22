@@ -89,11 +89,10 @@ class TarsnapBackend(object):
         """A list of archives as returned by --list-archives. Queried
         the first time it is accessed, and then subsequently cached.
         """
-        verbose_flag = ['v'] in self.options
         if self._queried_archives is None:
             response = StringIO(self.call('--list-archives'))
             self._queried_archives = [l.rstrip() for l in response.readlines()]
-            if verbose_flag:
+            if ['v'] in self.options:
                 # Filter out extraneous info if tarsnap was run with
                 # verbose flag
                 self._queried_archives = [

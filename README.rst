@@ -45,12 +45,12 @@ Note the single "-" that needs to be given between the --deltas argument
 and the command.
 
 The ``expire`` command supports a ``--dry-run`` argument that will allow
-you to see what would be deleted:
+you to see what would be deleted::
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
 
 
-If you need to pass arguments through to tarsnap, you can do this as well:
+If you need to pass arguments through to tarsnap, you can do this as well::
 
     $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
 
@@ -93,7 +93,7 @@ placeholder replaced by the backup job name, in this case ``images``.
 How expiring backups works
 ==========================
 
-The approach chosen tries to achieve the following:
+The algorithm picking the files to be deleted tries to achieve the following:
 
 * Do not require backup names to include information on which generation
   a backup belongs to, like for example ``tarsnap-generations`` does.

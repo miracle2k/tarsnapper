@@ -23,46 +23,10 @@ Using ``easy_install``::
     $ easy_install tarsnapper
 
 
-Basic usage
-===========
+Using a configuration file
+==========================
 
-Create backups based on the jobs defined in the configuration file (see
-below for information about the config file format)::
-
-    $ tarsnapper -c myconfigfile make
-
-
-Specify a job on the command line: In this case, we use the "expire"
-command, so no backups will be created, but only old backups deleted::
-
-    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
-
-The --target argument selects which set of backups to apply the expire
-operation to. tarsnapper will try to match the archives it finds into
-the given delta range, and will delete those which seem unnecessary.
-
-Note the single "-" that needs to be given between the --deltas argument
-and the command.
-
-The ``expire`` command supports a ``--dry-run`` argument that will allow
-you to see what would be deleted::
-
-    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
-
-
-If you need to pass arguments through to tarsnap, you can do this as well::
-
-    $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
-
-This will use ``tarsnap.conf`` as the tarsnap configuration file,
-``tarnspapper.conf`` as the tarsnapper configuration file, and will also
-put tarsnap into verbose mode via the ``-v`` flag.
-
-
-The config file
-===============
-
-Example::
+A configuration file looks like this::
 
     # Global values, valid for all jobs unless overridden:
     deltas: 1d 7d 30d
@@ -89,11 +53,51 @@ Example::
 For the ``images`` job, the global target will be used, with the ``name``
 placeholder replaced by the backup job name, in this case ``images``.
 
+You can then ask tarsnapper to create new backups for each job::
+
+    $ tarsnapper -c myconfigfile make
+
+Or to expire those archives no longer needed, as per the chosen deltas::
+
+  $ tarsnapper -c myconfigfile expire
+
+If you need to pass arguments through to tarsnap, you can do this as well::
+
+    $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
+
+This will use ``tarsnap.conf`` as the tarsnap configuration file,
+``tarnspapper.conf`` as the tarsnapper configuration file, and will also
+put tarsnap into verbose mode via the ``-v`` flag.
+
+
+Expiring backups
+================
+
+If you want to create the backups yourself, and are only interested in
+the expiration functionality, you can use just that::
+
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
+
+The --target argument selects which set of backups to apply the expire
+operation to. All archives that match this expression are considered
+to be part of the same backup set that you want to operate on.
+tarsnapper will then look at the date of each archive (this is why
+you need the ``$date`` placeholder) and determine those which are not
+needed to accomodate the given given delta range.
+
+Note the single "-" that needs to be given between the --deltas argument
+and the command.
+
+The ``expire`` command supports a ``--dry-run`` argument that will allow
+you to see what would be deleted::
+
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
+
 
 How expiring backups works
 ==========================
 
-The algorithm picking the files to be deleted tries to achieve the following:
+The design goals for this were as follows:
 
 * Do not require backup names to include information on which generation
   a backup belongs to, like for example ``tarsnap-generations`` does.

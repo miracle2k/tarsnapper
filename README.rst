@@ -74,19 +74,19 @@ Expiring backups
 ================
 
 If you want to create the backups yourself, and are only interested in
-the expiration functionality, you can use just that::
+the expiration functionality, you can do just that::
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
 
-The --target argument selects which set of backups to apply the expire
+The ``--target`` argument selects which set of backups to apply the expire
 operation to. All archives that match this expression are considered
 to be part of the same backup set that you want to operate on.
 tarsnapper will then look at the date of each archive (this is why
 you need the ``$date`` placeholder) and determine those which are not
 needed to accomodate the given given delta range.
 
-Note the single "-" that needs to be given between the --deltas argument
-and the command.
+Note the single "-" that needs to be given between the ``--deltas``
+argument and the command.
 
 The ``expire`` command supports a ``--dry-run`` argument that will allow
 you to see what would be deleted::

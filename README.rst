@@ -127,6 +127,32 @@ of 7 backups each one day older than the previous, and backups older than
 
 The most recent backup is always kept.
 
+As an example, here is a list of backups from a Desktop computer that has
+often been running non-stop for days, but also has on occasion been turned
+off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``:
+
+      dropbox-20140424-054252
+      dropbox-20140423-054120
+      dropbox-20140422-053921
+      dropbox-20140421-053920
+      dropbox-20140420-054246
+      dropbox-20140419-054007
+      dropbox-20140418-060211
+      dropbox-20140226-065032
+      dropbox-20140214-063824
+      dropbox-20140115-072109
+      dropbox-20131216-100926
+      dropbox-20131115-211256
+      dropbox-20131012-054438
+      dropbox-20130912-054731
+      dropbox-20130813-090621
+      dropbox-20130713-160422
+      dropbox-20130610-054348
+      dropbox-20130511-055537
+      dropbox-20130312-064042
+      dropbox-20120325-054505
+      dropbox-20110331-121745
+
 
 Bonus: Support for xpect.io
 ===========================

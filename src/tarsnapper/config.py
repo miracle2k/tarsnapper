@@ -102,13 +102,13 @@ def load_config(text):
     """
     config = yaml.load(text)
 
-    default_dateformat = config.get('dateformat')
-    default_deltas = parse_deltas(config.get('deltas'))
-    default_target = require_placeholders(config.get('target'),
+    default_dateformat = config.pop('dateformat', None)
+    default_deltas = parse_deltas(config.pop('deltas', None))
+    default_target = require_placeholders(config.pop('target', None),
                                           ['name', 'date'], 'The global target')
 
     read_jobs = {}
-    jobs_section = config.get('jobs')
+    jobs_section = config.pop('jobs')
     if not jobs_section:
         raise ConfigError('config must define at least one job')
     for job_name, job_dict in jobs_section.iteritems():
@@ -159,7 +159,9 @@ def load_config(text):
                 job_name, ", ".join(job_dict.keys())))
 
         read_jobs[job_name] = new_job
-    return read_jobs
+
+    # Return jobs, and all global keys not popped
+    return read_jobs, config
 
 
 def load_config_from_file(filename):

@@ -126,3 +126,26 @@ of 7 backups each one day older than the previous, and backups older than
 7 days will be discarded for good.
 
 The most recent backup is always kept.
+
+
+Bonus: Support for xpect.io
+===========================
+
+`xpect.io`_ is a neat monitoring system that will trigger an exception if a
+system does not check in regularly. tarsnapper has support for the service
+builtin.
+
+Two values are needed: The **expectation url** and the access key. Both
+can be provided either on the command line, or at the global level in
+the YAML file::
+
+    xpect: https://xpect.io/v1/accounts/42/expectations/99
+    xpect-key: 6173642377656633343b4b617364237
+
+    jobs:
+       ....
+
+
+Additionally, the environment variable ``XPECTIO_ACCESS_KEY`` is supported.
+
+.. _xpect.io: https://xpect.io/

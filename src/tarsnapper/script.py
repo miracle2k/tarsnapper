@@ -354,6 +354,9 @@ class MakeCommand(ExpireCommand):
             self.log.info(("Skipping '%s', does not define sources") % job.name)
             return
 
+        if job.exec_before:
+            self.backend._exec_util(job.exec_before)
+
         # Determine whether we can run this job. If any of the sources
         # are missing, or any source directory is empty, we skip this job.
         sources_missing = False
@@ -379,8 +382,6 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            if job.exec_before:
-                self.backend._exec_util(job.exec_before)
             try:
                 self.backend.make(job)
             finally:

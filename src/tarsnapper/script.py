@@ -382,11 +382,10 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            try:
-                self.backend.make(job)
-            finally:
-                if job.exec_after:
-                    self.backend._exec_util(job.exec_after)
+            self.backend.make(job)
+
+        if job.exec_after:
+            self.backend._exec_util(job.exec_after)
 
         # Expire old backups, but only bother if either we made a new
         # backup, or if expire was explicitly requested.

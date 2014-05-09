@@ -238,21 +238,22 @@ class XpectIOPlugin(object):
         access_key = config.get('xpect-key', args.xpect_key or self.env_key)
         url = config.get('xpect', args.xpect)
 
-        if url and not access_key:
-            raise RuntimeError('Cannot notify xpect.io, no access key set')
+        if url:
+            if not access_key:
+                raise RuntimeError('Cannot notify xpect.io, no access key set')
 
-        urllib2.urlopen(
-            urllib2.Request(
-                url=url,
-                headers={
-                    'Content-Type': 'application/json',
-                    'X-Access-Key': access_key,
-                },
-                data=json.dumps({
-                    'action': 'eventSuccess'
-                })
+            urllib2.urlopen(
+                urllib2.Request(
+                    url=url,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'X-Access-Key': access_key,
+                    },
+                    data=json.dumps({
+                        'action': 'eventSuccess'
+                    })
+                )
             )
-        )
 
 
 class Command(object):

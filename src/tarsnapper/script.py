@@ -355,6 +355,9 @@ class MakeCommand(ExpireCommand):
             self.log.info(("Skipping '%s', does not define sources") % job.name)
             return
 
+        if job.exec_before:
+            self.backend._exec_util(job.exec_before)
+
         # Determine whether we can run this job. If any of the sources
         # are missing, or any source directory is empty, we skip this job.
         sources_missing = False
@@ -380,13 +383,14 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            if job.exec_before:
-                self.backend._exec_util(job.exec_before)
             try:
                 self.backend.make(job)
-            finally:
-                if job.exec_after:
-                    self.backend._exec_util(job.exec_after)
+            except Exception:
+                self.log.error(("Something went wrong with backup job: '%s'")
+                               % job.name)
+
+        if job.exec_after:
+            self.backend._exec_util(job.exec_after)
 
         # Expire old backups, but only bother if either we made a new
         # backup, or if expire was explicitly requested.

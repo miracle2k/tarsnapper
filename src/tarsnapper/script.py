@@ -382,7 +382,11 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            self.backend.make(job)
+            try:
+                self.backend.make(job)
+            except Exception:
+                self.log.error(("Something went wrong with backup job: '%s'")
+                               % job.name)
 
         if job.exec_after:
             self.backend._exec_util(job.exec_after)

@@ -386,7 +386,7 @@ class MakeCommand(ExpireCommand):
             try:
                 self.backend.make(job)
             except Exception:
-                self.log.error(("Something went wrong with backup job: '%s'")
+                self.log.exception(("Something went wrong with backup job: '%s'")
                                % job.name)
 
         if job.exec_after:

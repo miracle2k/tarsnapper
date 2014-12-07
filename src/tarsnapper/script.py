@@ -1,5 +1,7 @@
+import json
 import sys, os
 from os import path
+import urllib2
 import uuid
 import subprocess
 from StringIO import StringIO
@@ -222,6 +224,43 @@ def timedelta_string(value):
         raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
 
+class XpectIOPlugin(object):
+    """Integrates with xpect.io.
+    """
+
+    def __init__(self):
+        # get access key from ENV
+        self.env_key = os.environ.get('XPECTIO_ACCESS_KEY', None)
+
+    def setup_arg_parser(self, parser):
+        parser.add_argument('--xpect', help='xpect.io url')
+        parser.add_argument('--xpect-key', help='xpect.io access key')
+
+    def all_jobs_done(self, args, config, cmd):
+        if not cmd in (MakeCommand, ExpireCommand):
+            return
+
+        access_key = config.get('xpect-key', args.xpect_key or self.env_key)
+        url = config.get('xpect', args.xpect)
+
+        if url:
+            if not access_key:
+                raise RuntimeError('Cannot notify xpect.io, no access key set')
+
+            urllib2.urlopen(
+                urllib2.Request(
+                    url=url,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'X-Access-Key': access_key,
+                    },
+                    data=json.dumps({
+                        'action': 'eventSuccess'
+                    })
+                )
+            )
+
+
 class Command(object):
 
     BackendClass = TarsnapBackend
@@ -321,6 +360,9 @@ class MakeCommand(ExpireCommand):
             self.log.info(("Skipping '%s', does not define sources") % job.name)
             return
 
+        if job.exec_before:
+            self.backend._exec_util(job.exec_before)
+
         # Determine whether we can run this job. If any of the sources
         # are missing, or any source directory is empty, we skip this job.
         sources_missing = False
@@ -346,13 +388,14 @@ class MakeCommand(ExpireCommand):
                               "sources exist")
             skipped = True
         else:
-            if job.exec_before:
-                self.backend._exec_util(job.exec_before)
             try:
                 self.backend.make(job)
-            finally:
-                if job.exec_after:
-                    self.backend._exec_util(job.exec_after)
+            except Exception:
+                self.log.exception(("Something went wrong with backup job: '%s'")
+                               % job.name)
+
+        if job.exec_after:
+            self.backend._exec_util(job.exec_after)
 
         # Expire old backups, but only bother if either we made a new
         # backup, or if expire was explicitly requested.
@@ -365,6 +408,11 @@ COMMANDS = {
     'expire': ExpireCommand,
     'list': ListCommand,
 }
+
+
+PLUGINS = [
+    XpectIOPlugin()
+]
 
 
 def parse_args(argv):
@@ -392,6 +440,9 @@ def parse_args(argv):
                         type=timedelta_string,
                         help='generation deltas', nargs='+')
     group.add_argument('--dateformat', '-f', help='dateformat')
+
+    for plugin in PLUGINS:
+        plugin.setup_arg_parser(parser)
 
     # This will allow the user to break out of an nargs='*' to start
     # with the subcommand. See http://bugs.python.org/issue9571.
@@ -422,7 +473,7 @@ def parse_args(argv):
 
     # This would be in a group automatically, but it would be shown as
     # the very first thing, while it really should be the last (which
-    # explicitely defining the group causes to happen).
+    # explicitly defining the group causes to happen).
     #
     # Also, note that we define this argument for each command as well,
     # and the command specific one will actually be parsed. This is
@@ -471,7 +522,7 @@ def main(argv):
     # Build a list of jobs, process them.
     if args.config:
         try:
-            jobs = config.load_config_from_file(args.config)
+            jobs, global_config = config.load_config_from_file(args.config)
         except config.ConfigError, e:
             log.fatal('Error loading config file: %s' % e)
             return 1
@@ -479,6 +530,7 @@ def main(argv):
         # Only a single job, as given on the command line
         jobs = {None: Job(**{'target': args.target, 'dateformat': args.dateformat,
                              'deltas': args.deltas, 'sources': args.sources})}
+        global_config = {}
 
     # Validate the requested list of jobs to run
     if args.jobs:
@@ -494,6 +546,9 @@ def main(argv):
     try:
         for job in jobs_to_run.values():
             command.run(job)
+
+        for plugin in PLUGINS:
+            plugin.all_jobs_done(args, global_config, args.command)
     except TarsnapError, e:
         log.fatal("tarsnap execution failed:\n%s" % e)
         return 1

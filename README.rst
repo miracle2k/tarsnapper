@@ -23,46 +23,10 @@ Using ``easy_install``::
     $ easy_install tarsnapper
 
 
-Basic usage
-===========
+Using a configuration file
+==========================
 
-Create backups based on the jobs defined in the configuration file (see
-below for information about the config file format)::
-
-    $ tarsnapper -c myconfigfile make
-
-
-Specify a job on the command line: In this case, we use the "expire"
-command, so no backups will be created, but only old backups deleted::
-
-    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
-
-The --target argument selects which set of backups to apply the expire
-operation to. tarsnapper will try to match the archives it finds into
-the given delta range, and will delete those which seem unnecessary.
-
-Note the single "-" that needs to be given between the --deltas argument
-and the command.
-
-The ``expire`` command supports a ``--dry-run`` argument that will allow
-you to see what would be deleted:
-
-    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
-
-
-If you need to pass arguments through to tarsnap, you can do this as well:
-
-    $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
-
-This will use ``tarsnap.conf`` as the tarsnap configuration file,
-``tarnspapper.conf`` as the tarsnapper configuration file, and will also
-put tarsnap into verbose mode via the ``-v`` flag.
-
-
-The config file
-===============
-
-Example::
+A configuration file looks like this::
 
     # Global values, valid for all jobs unless overridden:
     deltas: 1d 7d 30d
@@ -89,11 +53,55 @@ Example::
 For the ``images`` job, the global target will be used, with the ``name``
 placeholder replaced by the backup job name, in this case ``images``.
 
+You can then ask tarsnapper to create new backups for each job::
+
+    $ tarsnapper -c myconfigfile make
+
+Or to expire those archives no longer needed, as per the chosen deltas::
+
+  $ tarsnapper -c myconfigfile expire
+
+If you need to pass arguments through to tarsnap, you can do this as well::
+
+    $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
+
+This will use ``tarsnap.conf`` as the tarsnap configuration file,
+``tarnspapper.conf`` as the tarsnapper configuration file, and will also
+put tarsnap into verbose mode via the ``-v`` flag.
+
+
+Expiring backups
+================
+
+If you want to create the backups yourself, and are only interested in
+the expiration functionality, you can do just that::
+
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
+
+The ``--target`` argument selects which set of backups to apply the expire
+operation to. All archives that match this expression are considered
+to be part of the same backup set that you want to operate on.
+
+tarsnapper will then look at the date of each archive (this is why
+you need the ``$date`` placeholder) and determine those which are not
+needed to accomodate the given given delta range. It will parse the date
+using the ``python-dateutil`` library, which supports a vast array of
+different formats, though some restrictions apply: If you are using
+``yyyy-dd-mm``, it cannot generally differentiate that from ``yyyy-mm-dd``.
+
+Note the single "-" that needs to be given between the ``--deltas``
+argument and the command.
+
+The ``expire`` command supports a ``--dry-run`` argument that will allow
+you to see what would be deleted::
+
+    $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
+
 
 How expiring backups works
 ==========================
 
-The approach chosen tries to achieve the following:
+The design goals for this were as follows:
 
 * Do not require backup names to include information on which generation
   a backup belongs to, like for example ``tarsnap-generations`` does.
@@ -118,3 +126,52 @@ of 7 backups each one day older than the previous, and backups older than
 7 days will be discarded for good.
 
 The most recent backup is always kept.
+
+As an example, here is a list of backups from a Desktop computer that has
+often been running non-stop for days, but also has on occasion been turned
+off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``:
+
+      dropbox-20140424-054252
+      dropbox-20140423-054120
+      dropbox-20140422-053921
+      dropbox-20140421-053920
+      dropbox-20140420-054246
+      dropbox-20140419-054007
+      dropbox-20140418-060211
+      dropbox-20140226-065032
+      dropbox-20140214-063824
+      dropbox-20140115-072109
+      dropbox-20131216-100926
+      dropbox-20131115-211256
+      dropbox-20131012-054438
+      dropbox-20130912-054731
+      dropbox-20130813-090621
+      dropbox-20130713-160422
+      dropbox-20130610-054348
+      dropbox-20130511-055537
+      dropbox-20130312-064042
+      dropbox-20120325-054505
+      dropbox-20110331-121745
+
+
+Bonus: Support for xpect.io
+===========================
+
+`xpect.io`_ is a neat monitoring system that will trigger an exception if a
+system does not check in regularly. tarsnapper has support for the service
+builtin.
+
+Two values are needed: The **expectation url** and the access key. Both
+can be provided either on the command line, or at the global level in
+the YAML file::
+
+    xpect: https://xpect.io/v1/accounts/42/expectations/99
+    xpect-key: 6173642377656633343b4b617364237
+
+    jobs:
+       ....
+
+
+Additionally, the environment variable ``XPECTIO_ACCESS_KEY`` is supported.
+
+.. _xpect.io: https://xpect.io/

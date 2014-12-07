@@ -1,6 +1,7 @@
 from datetime import datetime
 from expire import expire as default_expire_func
 from config import parse_deltas
+from script import parse_date
 
 
 __all__ = ('BackupSimulator',)
@@ -29,7 +30,7 @@ class BackupSimulator(object):
     def add(self, backups):
         for dt in backups:
             if isinstance(dt, basestring):
-                dt = datetime.strptime(dt, "%Y%m%d-%H%M%S")
+                dt = parse_date(dt)
             self.backups[str(dt)] = dt
 
     def go_to(self, dt):

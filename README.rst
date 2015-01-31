@@ -66,7 +66,7 @@ If you need to pass arguments through to tarsnap, you can do this as well::
     $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
 
 This will use ``tarsnap.conf`` as the tarsnap configuration file,
-``tarnspapper.conf`` as the tarsnapper configuration file, and will also
+``tarsnapper.conf`` as the tarsnapper configuration file, and will also
 put tarsnap into verbose mode via the ``-v`` flag.
 
 

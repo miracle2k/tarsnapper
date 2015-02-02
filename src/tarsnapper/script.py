@@ -10,6 +10,7 @@ from string import Template
 from datetime import datetime, timedelta
 import logging
 import argparse
+import dateutil.parser
 
 import expire, config
 from config import Job
@@ -191,23 +192,15 @@ class TarsnapBackend(object):
 
 DEFAULT_DATEFORMAT = '%Y%m%d-%H%M%S'
 
-DATE_FORMATS = (
-    DEFAULT_DATEFORMAT,
-    '%Y%m%d-%H%M',
-)
-
 
 def parse_date(string, dateformat=None):
-    """Parse a date string using either a list of builtin formats,
-    or the given one.
+    """Parse a date string, either using the given format, or by
+    relying on python-dateutil.
     """
-    for to_try in ([dateformat] if dateformat else DATE_FORMATS):
-        try:
-            return datetime.strptime(string, to_try)
-        except ValueError:
-            pass
+    if dateformat:
+        return datetime.strptime(string, dateformat)
     else:
-        raise ValueError('"%s" is not a supported date format' % string)
+        return dateutil.parser.parse(string)
 
 
 def timedelta_string(value):

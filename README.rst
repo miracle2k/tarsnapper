@@ -57,6 +57,10 @@ You can then ask tarsnapper to create new backups for each job::
 
     $ tarsnapper -c myconfigfile make
 
+The name of the archive will be the ``target`` option, with the ``$date``
+placeholder replaced by the current timestamp, using either the
+``dateformat`` option, or ``%Y%m%d-%H%M%S``.
+
 Or to expire those archives no longer needed, as per the chosen deltas::
 
   $ tarsnapper -c myconfigfile expire
@@ -88,6 +92,11 @@ needed to accomodate the given given delta range. It will parse the date
 using the ``python-dateutil`` library, which supports a vast array of
 different formats, though some restrictions apply: If you are using
 ``yyyy-dd-mm``, it cannot generally differentiate that from ``yyyy-mm-dd``.
+
+You can specify a custom dateformat using the ``--dateformat`` option,
+which should be a format string as expected by the Python ``strptime``
+function (e.g. ``%Y%m%d-%H%M%S``). Usually, a custom format is not
+necessary.
 
 Note the single "-" that needs to be given between the ``--deltas``
 argument and the command.

@@ -19,14 +19,14 @@ def test_aliases():
       foo:
         target: foo-$date
         alias: foo
-    """)['foo'].aliases == ['foo']
+    """)[0]['foo'].aliases == ['foo']
     assert load_config("""
     jobs:
       foo:
         target: foo-$date
         aliases:
           - foo
-    """)['foo'].aliases == ['foo']
+    """)[0]['foo'].aliases == ['foo']
 
 
 def test_excludes():
@@ -36,14 +36,14 @@ def test_excludes():
       foo:
         target: foo-$date
         exclude: foo
-    """)['foo'].excludes == ['foo']
+    """)[0]['foo'].excludes == ['foo']
     assert load_config("""
     jobs:
       foo:
         target: foo-$date
         excludes:
           - foo
-    """)['foo'].excludes == ['foo']
+    """)[0]['foo'].excludes == ['foo']
 
 
 def test_no_sources():
@@ -72,7 +72,7 @@ def test_global_target():
       foo:
         deltas: 1d 2d 3d
         sources: sdf
-    """)['foo'].target == '$name-$date'
+    """)[0]['foo'].target == '$name-$date'
 
 
 def test_empty_job():
@@ -81,7 +81,7 @@ def test_empty_job():
     target: $name-$date
     jobs:
       foo:
-    """)['foo']
+    """)[0]['foo']
 
 
 def test_no_deltas():
@@ -101,7 +101,7 @@ def test_global_deltas():
       foo:
         sources: /etc
         target: $date
-    """)['foo'].deltas) == 3
+    """)[0]['foo'].deltas) == 3
 
 
 def test_target_has_name():
@@ -141,7 +141,7 @@ def test_target_has_date():
 
 
 def test_dateformat_inheritance():
-    r = load_config("""
+    r, _ = load_config("""
     dateformat: ABC
     target: $name-$date
     deltas: 1d 2d
@@ -174,7 +174,7 @@ def test_single_source():
     jobs:
       foo:
         source: /etc
-    """)['foo'].sources == ['/etc']
+    """)[0]['foo'].sources == ['/etc']
 
 
 def test_source_and_sources():

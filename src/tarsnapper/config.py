@@ -108,7 +108,7 @@ def load_config(text):
                                           ['name', 'date'], 'The global target')
 
     read_jobs = {}
-    jobs_section = config.pop('jobs')
+    jobs_section = config.pop('jobs', None)
     if not jobs_section:
         raise ConfigError('config must define at least one job')
     for job_name, job_dict in jobs_section.iteritems():

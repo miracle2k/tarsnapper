@@ -161,26 +161,3 @@ off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``:
       dropbox-20130312-064042
       dropbox-20120325-054505
       dropbox-20110331-121745
-
-
-Bonus: Support for xpect.io
-===========================
-
-`xpect.io`_ is a neat monitoring system that will trigger an exception if a
-system does not check in regularly. tarsnapper has support for the service
-builtin.
-
-Two values are needed: The **expectation url** and the access key. Both
-can be provided either on the command line, or at the global level in
-the YAML file::
-
-    xpect: https://xpect.io/v1/accounts/42/expectations/99
-    xpect-key: 6173642377656633343b4b617364237
-
-    jobs:
-       ....
-
-
-Additionally, the environment variable ``XPECTIO_ACCESS_KEY`` is supported.
-
-.. _xpect.io: https://xpect.io/

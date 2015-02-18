@@ -212,43 +212,6 @@ def timedelta_string(value):
         raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
 
-class XpectIOPlugin(object):
-    """Integrates with xpect.io.
-    """
-
-    def __init__(self):
-        # get access key from ENV
-        self.env_key = os.environ.get('XPECTIO_ACCESS_KEY', None)
-
-    def setup_arg_parser(self, parser):
-        parser.add_argument('--xpect', help='xpect.io url')
-        parser.add_argument('--xpect-key', help='xpect.io access key')
-
-    def all_jobs_done(self, args, config, cmd):
-        if not cmd in (MakeCommand, ExpireCommand):
-            return
-
-        access_key = config.get('xpect-key', args.xpect_key or self.env_key)
-        url = config.get('xpect', args.xpect)
-
-        if url:
-            if not access_key:
-                raise RuntimeError('Cannot notify xpect.io, no access key set')
-
-            urllib2.urlopen(
-                urllib2.Request(
-                    url=url,
-                    headers={
-                        'Content-Type': 'application/json',
-                        'X-Access-Key': access_key,
-                    },
-                    data=json.dumps({
-                        'action': 'eventSuccess'
-                    })
-                )
-            )
-
-
 class Command(object):
 
     BackendClass = TarsnapBackend
@@ -399,7 +362,6 @@ COMMANDS = {
 
 
 PLUGINS = [
-    XpectIOPlugin()
 ]
 
 

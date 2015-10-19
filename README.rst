@@ -88,7 +88,7 @@ to be part of the same backup set that you want to operate on.
 
 tarsnapper will then look at the date of each archive (this is why
 you need the ``$date`` placeholder) and determine those which are not
-needed to accomodate the given given delta range. It will parse the date
+needed to accommodate the given given delta range. It will parse the date
 using the ``python-dateutil`` library, which supports a vast array of
 different formats, though some restrictions apply: If you are using
 ``yyyy-dd-mm``, it cannot generally differentiate that from ``yyyy-mm-dd``.

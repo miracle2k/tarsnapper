@@ -11,6 +11,9 @@ from datetime import datetime, timedelta
 import logging
 import argparse
 import dateutil.parser
+import getpass
+
+import pexpect
 
 import expire, config
 from config import Job
@@ -46,6 +49,7 @@ class TarsnapBackend(object):
         self.dryrun = dryrun
         self._queried_archives = None
         self._known_archives = []
+        self.key_passphrase = None
 
     def call(self, *arguments):
         """
@@ -63,13 +67,28 @@ class TarsnapBackend(object):
 
     def _exec_tarsnap(self, args):
         self.log.debug("Executing: %s" % " ".join(args))
-        p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        (stdout, stderr) = p.communicate()
-        if p.returncode != 0:
-            raise TarsnapError('%s' % stderr)
-        return stdout
+        env = os.environ
+        env['LANG'] = 'C' # ensure the tarsnap output is in english
+        child = pexpect.spawn(args[0], args[1:], env=env)
+	
+        # look for the passphrase prompt
+        has_prompt = (child.expect(['Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
+        if has_prompt:
+            child.sendline(self._get_key_passphrase())
+            child.expect(pexpect.EOF)
+        out = child.before
+        child.close()
 
+        if child.exitstatus != 0:
+            raise TarsnapError("tarsnap failed with status {0}:{1}{2}".format(
+                        child.exitstatus, os.linesep, out))
+        return out
+
+    def _get_key_passphrase(self):
+        if not self.key_passphrase:
+            self.key_passphrase = getpass.getpass('Passphrase for the tarsnap key: ')
+        return self.key_passphrase
+        
     def _exec_util(self, cmdline, shell=False):
         # TODO: can this be merged with _exec_tarsnap into something generic?
         self.log.debug("Executing: %s" % cmdline)

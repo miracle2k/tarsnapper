@@ -36,8 +36,8 @@ A configuration file looks like this::
       images:
         source: /var/lib/mysql
         exclude: /var/lib/mysql/temp
-        exec_before: service stop mysql
-        exec_after: service start mysql
+        exec_before: service mysql stop
+        exec_after: service mysql start
         # Aliases can be used when renaming a job to match old archives.
         alias: img
 

@@ -181,14 +181,25 @@ class TarsnapBackend(object):
         self.log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
 
         # Delete all others
+        to_delete = []
         for name, _ in backups.items():
             if not name in to_keep:
-                self.log.info('Deleting %s' % name)
-                if not self.dryrun:
-                    self.call('-d', '-f', name)
+                to_delete.append(name)
+
+        to_keep.sort()
+        to_delete.sort()
+
+        self.log.debug('Keeping %s' % ' '.join(to_keep))
+
+        if len(to_delete) == 0:
+            return
+
+        self.log.info('Deleting %s' % ' '.join(to_delete))
+
+        if not self.dryrun:
+            self.call('-d', '-f', *' -f '.join(to_delete).split(' '))
+            for name in to_delete:
                 self.archives.remove(name)
-            else:
-                self.log.debug('Keeping %s' % name)
 
     def make(self, job):
         now = datetime.utcnow()

@@ -215,3 +215,51 @@ def test_exclude_and_excludes():
           loo
           moo
     """)
+
+def test_named_delta():
+    assert len(load_config("""
+    target: $name-$date
+    deltas: 1d 10d
+    delta-names:
+      myDelta: 1d 7d 30d
+      otherDelta: 1d 7d 30d 90d
+    jobs:
+      foo:
+        source: /foo/
+        delta: myDelta
+    """)[0]['foo'].deltas) == 3
+
+def test_unspecified_named_delta():
+    assert_raises(ConfigError, load_config, """
+    target: $name-$date
+    delta-names:
+      myDelta:
+    jobs:
+      foo:
+        source: /foo/
+        delta: myDelta
+    """)
+
+def test_undefined_named_delta():
+    assert_raises(ConfigError, load_config, """
+    target: $name-$date
+    delta-names:
+      myDelta: 1d 7d 30d
+    jobs:
+      foo:
+        source: /foo/
+        delta: importantDelta
+    """)
+
+def test_named_delta_and_deltas():
+    """You can't use both named delta and deltas at the same time."""
+    assert_raises(ConfigError, load_config, """
+    target: $name-$date
+    delta-names:
+      myDelta: 1d 7d 30d
+    jobs:
+      foo:
+        source: /foo/
+        delta: myDelta
+        deltas: 5d 10d
+    """)

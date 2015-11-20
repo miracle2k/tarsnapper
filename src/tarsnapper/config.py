@@ -3,6 +3,8 @@ like this:
 
     # Global values, valid for all jobs unless overridden:
     deltas: 1d 7d 30d
+    delta-names:
+      important: 1h 1d 30d 90d 360d
     target: /localmachine/$name-$date
 
     jobs:
@@ -16,6 +18,9 @@ like this:
         target: /custom-target-$date.zip
         deltas: 1h 6h 1d 7d 24d 180d
 
+      important-job:
+        source: /important/
+        delta: important
 """
 
 from datetime import timedelta
@@ -95,6 +100,13 @@ def parse_deltas(delta_string):
 
     return deltas
 
+def parse_named_deltas(named_delta_dict):
+    named_deltas = {}
+    for name, deltas in named_delta_dict.iteritems():
+        if deltas is None:
+            raise ConfigError(('%s: No deltas specified') % name)
+        named_deltas[name] = parse_deltas(deltas)
+    return named_deltas
 
 def load_config(text):
     """Load the config file and return a dict of jobs, with the local
@@ -106,6 +118,8 @@ def load_config(text):
     default_deltas = parse_deltas(config.pop('deltas', None))
     default_target = require_placeholders(config.pop('target', None),
                                           ['name', 'date'], 'The global target')
+
+    named_deltas = parse_named_deltas(config.pop('delta-names', {}))
 
     read_jobs = {}
     jobs_section = config.pop('jobs', None)
@@ -137,6 +151,18 @@ def load_config(text):
             excludes = [job_dict.pop('exclude')]
         else:
             excludes = job_dict.pop('excludes', [])
+        # deltas
+        if 'deltas' in job_dict and 'delta' in job_dict:
+            raise ConfigError(('%s: Use either the "deltas" or "delta" '+
+                              'option, not both') % job_name)
+        if 'delta' in job_dict:
+            delta_name = job_dict.pop('delta', None)
+            if delta_name not in named_deltas:
+                raise ConfigError(('%s: Named delta "%s" not defined')
+                                  % (job_name,delta_name))
+            deltas = named_deltas[delta_name]
+        else:
+            deltas = parse_deltas(job_dict.pop('deltas', None)) or default_deltas
         new_job = Job(**{
             'name': job_name,
             'sources': sources,
@@ -144,7 +170,7 @@ def load_config(text):
             'excludes': excludes,
             'target': job_dict.pop('target', default_target),
             'force': job_dict.pop('force', False),
-            'deltas': parse_deltas(job_dict.pop('deltas', None)) or default_deltas,
+            'deltas': deltas,
             'dateformat': job_dict.pop('dateformat', default_dateformat),
             'exec_before': job_dict.pop('exec_before', None),
             'exec_after': job_dict.pop('exec_after', None),

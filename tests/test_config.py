@@ -217,7 +217,7 @@ def test_exclude_and_excludes():
     """)
 
 def test_named_delta():
-    assert len(load_config("""
+    c = load_config("""
     target: $name-$date
     deltas: 1d 10d
     delta-names:
@@ -227,7 +227,15 @@ def test_named_delta():
       foo:
         source: /foo/
         delta: myDelta
-    """)[0]['foo'].deltas) == 3
+      bar:
+        source: /foo/
+        delta: otherDelta
+      baz:
+        source: /foo/
+    """)
+    assert len(c[0]['baz'].deltas) == 2
+    assert len(c[0]['foo'].deltas) == 3
+    assert len(c[0]['bar'].deltas) == 4
 
 def test_unspecified_named_delta():
     assert_raises(ConfigError, load_config, """

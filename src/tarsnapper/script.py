@@ -69,8 +69,11 @@ class TarsnapBackend(object):
         self.log.debug("Executing: %s" % " ".join(args))
         env = os.environ
         env['LANG'] = 'C' # ensure the tarsnap output is in english
-        child = pexpect.spawn(args[0], args[1:], env=env)
-	
+        child = pexpect.spawn(args[0], args[1:], env=env, timeout=None)
+
+        if self.log.isEnabledFor(logging.DEBUG):
+            child.logfile = sys.stdout
+
         # look for the passphrase prompt
         has_prompt = (child.expect(['Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
         if has_prompt:

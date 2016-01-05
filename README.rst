@@ -29,10 +29,19 @@ Using a configuration file
 A configuration file looks like this::
 
     # Global values, valid for all jobs unless overridden:
+    # A job's delta controls when old backups are expired
+    # (see "How expiring backups works" below)
     deltas: 1d 7d 30d
+    # You can avoid repetition by giving deltas names
+    delta-names:
+      super-important: 1h 1d 30d 90d 360d
+    # A job's target sets the name of the created archive
     target: /localmachine/$name-$date
+    # You can also include jobs from separate files
+    include-jobs: /usr/local/etc/tarsnapper/*.yml
 
     jobs:
+      # define a job called images (names must be unique)
       images:
         source: /var/lib/mysql
         exclude: /var/lib/mysql/temp
@@ -73,6 +82,24 @@ This will use ``tarsnap.conf`` as the tarsnap configuration file,
 ``tarsnapper.conf`` as the tarsnapper configuration file, and will also
 put tarsnap into verbose mode via the ``-v`` flag.
 
+Using the ``include-jobs`` option, you could insert 1 or more jobs in (for
+example) ``/usr/local/etc/tarsnapper/extra-backup-jobs.yml``::
+
+      # Included jobs act just like jobs in the main config file, so for
+      # example the default target is active and named deltas are
+      # available, and job names must still be globally unique.
+      yet-another-job:
+        source: /var/dir/2
+        deltas: 1h 1d 30d
+
+      an-important-job:
+        source: /var/something-important
+        delta: super-important
+
+``include-jobs`` uses `Python's globbing`_ to find job files and hence is
+subject to the limitations thereof.
+
+.. _Python's globbing: https://docs.python.org/2/library/glob.html
 
 Expiring backups
 ================
@@ -138,7 +165,7 @@ The most recent backup is always kept.
 
 As an example, here is a list of backups from a Desktop computer that has
 often been running non-stop for days, but also has on occasion been turned
-off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``:
+off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``::
 
       dropbox-20140424-054252
       dropbox-20140423-054120

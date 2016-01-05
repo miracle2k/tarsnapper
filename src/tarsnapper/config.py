@@ -6,6 +6,7 @@ like this:
     delta-names:
       important: 1h 1d 30d 90d 360d
     target: /localmachine/$name-$date
+    include-jobs: /usr/local/etc/tarsnapper/jobs.d/*
 
     jobs:
       images:
@@ -21,11 +22,26 @@ like this:
       important-job:
         source: /important/
         delta: important
+
+Job files included from the include-jobs directory should can have one or
+more jobs, and should behave just as if each job was listed under the jobs
+key directly, after the explicitly listed entries. So a sample include-jobs
+file looks like this:
+
+    my-second-job:
+      source: /var/dir/2
+      deltas: 1h 6h 1d 7d 24d 180d
+
+    another-important-job:
+      source: /important-2/
+      delta: important
 """
 
 from datetime import timedelta
 from string import Template
+import glob
 import yaml
+import os
 
 
 __all__ = ('Job', 'load_config', 'load_config_from_file', 'ConfigError',)
@@ -112,7 +128,7 @@ def load_config(text):
     """Load the config file and return a dict of jobs, with the local
     and global configurations merged.
     """
-    config = yaml.load(text)
+    config = yaml.safe_load(text)
 
     default_dateformat = config.pop('dateformat', None)
     default_deltas = parse_deltas(config.pop('deltas', None))
@@ -120,12 +136,14 @@ def load_config(text):
                                           ['name', 'date'], 'The global target')
 
     named_deltas = parse_named_deltas(config.pop('delta-names', {}))
+    include_jobs_dir = config.pop('include-jobs', None)
 
     read_jobs = {}
     jobs_section = config.pop('jobs', None)
-    if not jobs_section:
-        raise ConfigError('config must define at least one job')
-    for job_name, job_dict in jobs_section.iteritems():
+
+    def load_job(job_name, job_dict):
+        """Construct a valid Job from the given job configuration yaml and return it.
+        """
         job_dict = job_dict or {}
         # sources
         if 'sources' in job_dict and 'source' in job_dict:
@@ -183,8 +201,25 @@ def load_config(text):
         if job_dict:
             raise ConfigError('%s has unsupported configuration values: %s' % (
                 job_name, ", ".join(job_dict.keys())))
+        return new_job
 
-        read_jobs[job_name] = new_job
+    if jobs_section:
+        for job_name, job_dict in jobs_section.iteritems():
+            if job_name in read_jobs:
+                raise ConfigError('%s: duplicated job name' % job_name)
+            read_jobs[job_name] = load_job(job_name, job_dict)
+
+    if include_jobs_dir:
+        for jobs_file in sorted(filter(os.path.isfile, glob.iglob(include_jobs_dir))):
+            with open(jobs_file) as f:
+                jobs_file_yaml = yaml.safe_load(f)
+            for job_name, job_dict in jobs_file_yaml.iteritems():
+                if job_name in read_jobs:
+                    raise ConfigError('%s: duplicated job name' % job_name)
+                read_jobs[job_name] = load_job(job_name, job_dict)
+
+    if not len(read_jobs):
+        raise ConfigError('config must define at least one job')
 
     # Return jobs, and all global keys not popped
     return read_jobs, config

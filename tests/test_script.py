@@ -1,10 +1,14 @@
 from StringIO import StringIO
+
+import subprocess
+
 from os import path
 import re
 import shutil
 import tempfile
 import logging
 import argparse
+import mock
 from datetime import datetime
 from tarsnapper.script import (
     TarsnapBackend, MakeCommand, ListCommand, ExpireCommand, parse_args,
@@ -154,6 +158,38 @@ class TestMake(BaseTest):
             ('echo end'),
         ])
 
+    def test_on_success_positive(self):
+        cmd = self.run(
+            self.job(on_success="curl http://example.com/foo"),
+            [], no_expire=True
+        )
+        assert cmd.backend.match([
+            ('-c', '-f', 'test-.*', '.*'),
+            'curl http://example.com/foo'
+        ])
+
+    def test_on_success_negative(self):
+        with mock.patch.object(
+                FakeBackend, '_exec_tarsnap', side_effect=subprocess.CalledProcessError(1, '', '')
+        ) as exec_tarsnap:
+            cmd = self.run(
+                self.job(on_success="curl http://example.com/foo"),
+                [], no_expire=True
+            )
+            # Tarsnap was called but this was not registered (as we mocked this method)
+            assert exec_tarsnap.called
+            # On success was not called
+            assert len(cmd.backend.calls) == 0
+
+    def test_keyfile_and_cachedir(self):
+        cmd = self.run(
+            self.job(keyfile="/etc/tarsnap/key", cachedir="/etc/tarsnap/cache"),
+            [], no_expire=True,
+        )
+        assert cmd.backend.match([(
+            '--keyfile', '/etc/tarsnap/key', '--cachedir', '/etc/tarsnap/cache',
+            '-c', '-f', 'test-.*', '.*'
+        )])
 
 class TestExpire(BaseTest):
 

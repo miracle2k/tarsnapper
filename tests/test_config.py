@@ -271,3 +271,39 @@ def test_named_delta_and_deltas():
         delta: myDelta
         deltas: 5d 10d
     """)
+
+
+def test_keyfile():
+    """Loading of the "keyfile" option."""
+    c = load_config("""
+     target: $name-$date
+     jobs:
+       foo:
+         source: /foo/
+         keyfile: /etc/tarsnapper/foo.key
+     """)
+    assert c[0]['foo'].keyfile == "/etc/tarsnapper/foo.key"
+
+
+def test_cachedir():
+    """Loading of the "cachedir" option."""
+    c = load_config("""
+     target: $name-$date
+     jobs:
+       foo:
+         source: /foo/
+         cachedir: /var/cache/tarsnap/foo
+     """)
+    assert c[0]['foo'].cachedir == "/var/cache/tarsnap/foo"
+
+
+def test_on_success():
+    """Loading of the "on_success" option."""
+    c = load_config("""
+     target: $name-$date
+     jobs:
+       foo:
+         source: /foo/
+         on_success: curl http://example.com/heartbeat
+     """)
+    assert c[0]['foo'].on_success == "curl http://example.com/heartbeat"

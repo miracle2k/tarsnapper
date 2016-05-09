@@ -47,8 +47,14 @@ A configuration file looks like this::
         exclude: /var/lib/mysql/temp
         exec_before: service mysql stop
         exec_after: service mysql start
+        # Called only if backup is successful
+        on_success: curl http://example.com/heartbeat
         # Aliases can be used when renaming a job to match old archives.
         alias: img
+        # If present and not empty will set tarsnapper key for this job
+        keyfile:
+        # If present and not empty will override tarsnapper cache dir for this job
+        cachedir:
 
       some-other-job:
         sources:

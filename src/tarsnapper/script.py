@@ -50,11 +50,15 @@ class TarsnapBackend(object):
         self._queried_archives = None
         self._known_archives = []
         self.key_passphrase = None
+        self.archive_cache = {}
 
-    def call(self, *arguments):
+    def call(self, *arguments, **kwargs):
         """
         ``arguments`` is a single list of strings.
         """
+        job = kwargs.get('job')
+        if not job:
+            raise TypeError("Please pass job parameter to call()")
         call_with = ['tarsnap']
         for option in self.options:
             key = option[0]
@@ -62,6 +66,10 @@ class TarsnapBackend(object):
             call_with.append("%s%s" % (pre, key))
             for value in option[1:]:
                 call_with.append(value)
+        if job.keyfile:
+            call_with.extend(['--keyfile', job.keyfile])
+        if job.cachedir:
+            call_with.extend(['--cachedir', job.cachedir])
         call_with.extend(arguments)
         return self._exec_tarsnap(call_with)
 
@@ -110,20 +118,24 @@ class TarsnapBackend(object):
         """
         self._known_archives.append(name)
 
-    def get_archives(self):
+    def _get_archives(self, job):
         """A list of archives as returned by --list-archives. Queried
         the first time it is accessed, and then subsequently cached.
         """
-        if self._queried_archives is None:
-            response = StringIO(self.call('--list-archives'))
-            self._queried_archives = [l.rstrip() for l in response.readlines()]
-            if ['v'] in self.options:
-                # Filter out extraneous info if tarsnap was run with
-                # verbose flag
-                self._queried_archives = [
-                    l.rsplit('\t', 1)[0] for l in self._queried_archives]
-        return self._queried_archives + self._known_archives
-    archives = property(get_archives)
+        response = StringIO(self.call('--list-archives', job=job))
+        queried_archives = [l.rstrip() for l in response.readlines()]
+        if ['v'] in self.options:
+            # Filter out extraneous info if tarsnap was run with
+            # verbose flag
+            queried_archives = [
+                l.rsplit('\t', 1)[0] for l in self._queried_archives]
+        return queried_archives
+
+    def archives(self, job):
+        cache_key = job.keyfile
+        if cache_key not in self.archive_cache:
+            self.archive_cache[cache_key] = self._get_archives(job)
+        return self.archive_cache[cache_key] + self._known_archives
 
     def get_backups(self, job):
         """Return a dict of backups that exist for the given job, by
@@ -140,7 +152,7 @@ class TarsnapBackend(object):
                         re.escape(target).replace(unique, '(?P<date>.*?)')))
 
         backups = {}
-        for backup_path in self.get_archives():
+        for backup_path in self.archives(job):
             match = None
             for regex in regexes:
                 match = regex.match(backup_path)
@@ -200,9 +212,9 @@ class TarsnapBackend(object):
         self.log.info('Deleting %s' % ' '.join(to_delete))
 
         if not self.dryrun:
-            self.call('-d', '-f', *' -f '.join(to_delete).split(' '))
+            self.call('-d', '-f', *' -f '.join(to_delete).split(' '), job=job)
             for name in to_delete:
-                self.archives.remove(name)
+                self.archives(job).remove(name)
 
     def make(self, job):
         now = datetime.utcnow()
@@ -220,7 +232,7 @@ class TarsnapBackend(object):
             [args.extend(['--exclude', e]) for e in job.excludes]
             args.extend(['-f', target])
             args.extend(job.sources)
-            self.call(*args)
+            self.call(*args, job=job)
         # Add the new backup the list of archives, so we have an up-to-date
         # list without needing to query again.
         self._add_known_archive(target)
@@ -379,6 +391,8 @@ class MakeCommand(ExpireCommand):
         else:
             try:
                 self.backend.make(job)
+                if job.on_success:
+                    self.backend._exec_util(job.on_success)
             except Exception:
                 self.log.exception(("Something went wrong with backup job: '%s'")
                                % job.name)

@@ -66,7 +66,9 @@ class Job(object):
         self.force = initial.get('force')
         self.exec_before = initial.get('exec_before')
         self.exec_after = initial.get('exec_after')
-
+        self.keyfile = initial.get('keyfile')
+        self.cachedir = initial.get('cachedir')
+        self.on_success = initial.get('on_success')
 
 def require_placeholders(text, placeholders, what):
     """Ensure that ``text`` contains the given placeholders.
@@ -192,6 +194,9 @@ def load_config(text):
             'dateformat': job_dict.pop('dateformat', default_dateformat),
             'exec_before': job_dict.pop('exec_before', None),
             'exec_after': job_dict.pop('exec_after', None),
+            'keyfile': job_dict.pop('keyfile', None),
+            'cachedir': job_dict.pop('cachedir', None),
+            'on_success': job_dict.pop('on_success', None)
         })
         if not new_job.target:
             raise ConfigError('%s does not have a target name' % job_name)

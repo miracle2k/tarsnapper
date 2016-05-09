@@ -118,25 +118,24 @@ class TarsnapBackend(object):
         """
         self._known_archives.append(name)
 
-    def get_archives(self, job):
+    def _get_archives(self, job):
         """A list of archives as returned by --list-archives. Queried
         the first time it is accessed, and then subsequently cached.
         """
-        if self._queried_archives is None:
-            response = StringIO(self.call('--list-archives', job=job))
-            self._queried_archives = [l.rstrip() for l in response.readlines()]
-            if ['v'] in self.options:
-                # Filter out extraneous info if tarsnap was run with
-                # verbose flag
-                self._queried_archives = [
-                    l.rsplit('\t', 1)[0] for l in self._queried_archives]
-        return self._queried_archives + self._known_archives
+        response = StringIO(self.call('--list-archives', job=job))
+        queried_archives = [l.rstrip() for l in response.readlines()]
+        if ['v'] in self.options:
+            # Filter out extraneous info if tarsnap was run with
+            # verbose flag
+            queried_archives = [
+                l.rsplit('\t', 1)[0] for l in self._queried_archives]
+        return queried_archives
 
     def archives(self, job):
-        if job.name not in self.archive_cache:
-            self.archive_cache[job.name] = self.get_archives(job)
-        return self.archive_cache[job.name]
-
+        cache_key = job.keyfile
+        if cache_key not in self.archive_cache:
+            self.archive_cache[cache_key] = self._get_archives(job)
+        return self.archive_cache[cache_key] + self._known_archives
 
     def get_backups(self, job):
         """Return a dict of backups that exist for the given job, by
@@ -153,7 +152,7 @@ class TarsnapBackend(object):
                         re.escape(target).replace(unique, '(?P<date>.*?)')))
 
         backups = {}
-        for backup_path in self.get_archives(job):
+        for backup_path in self.archives(job):
             match = None
             for regex in regexes:
                 match = regex.match(backup_path)

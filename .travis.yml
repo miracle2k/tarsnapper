@@ -4,7 +4,7 @@ python:
   - 3.6
 install:
   - pip install nose
-  - pip install -r requirements.php
+  - pip install -r requirements.pip
 script:
   - nosetests tests
 notifications:

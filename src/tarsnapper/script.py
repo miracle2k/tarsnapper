@@ -1,10 +1,10 @@
 import json
 import sys, os
 from os import path
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import uuid
 import subprocess
-from StringIO import StringIO
+from io import StringIO
 import re
 from string import Template
 from datetime import datetime, timedelta
@@ -15,8 +15,8 @@ import getpass
 
 import pexpect
 
-import expire, config
-from config import Job
+from . import expire, config
+from .config import Job
 
 
 class ArgumentError(Exception):
@@ -151,7 +151,7 @@ class TarsnapBackend(object):
                 continue
             try:
                 date = parse_date(match.groupdict()['date'], job.dateformat)
-            except ValueError, e:
+            except ValueError as e:
                 # This can occasionally happen when multiple archives
                 # share a prefix, say for example you have "windows-$date"
                 # and "windows-data-$date". Since we have to use a generic
@@ -185,7 +185,7 @@ class TarsnapBackend(object):
 
         # Delete all others
         to_delete = []
-        for name, _ in backups.items():
+        for name, _ in list(backups.items()):
             if not name in to_keep:
                 to_delete.append(name)
 
@@ -246,7 +246,7 @@ def timedelta_string(value):
     """
     try:
         return config.str_to_timedelta(value)
-    except ValueError, e:
+    except ValueError as e:
         raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
 
@@ -286,10 +286,10 @@ class ListCommand(Command):
         # Sort backups by time
         # TODO: This duplicates code from the expire module. Should
         # the list of backups always be returned sorted instead?
-        backups = [(name, time) for name, time in backups.items()]
+        backups = [(name, time) for name, time in list(backups.items())]
         backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
         for backup, _ in backups:
-            print "  %s" % backup
+            print("  %s" % backup)
 
 
 class ExpireCommand(Command):
@@ -439,7 +439,7 @@ def parse_args(argv):
 
     subparsers = parser.add_subparsers(
         title="commands", description="commands may offer additional options")
-    for cmd_name, cmd_klass in COMMANDS.iteritems():
+    for cmd_name, cmd_klass in COMMANDS.items():
         subparser = subparsers.add_parser(cmd_name, help=cmd_klass.help,
                                           description=cmd_klass.description,
                                           add_help=False)
@@ -494,8 +494,8 @@ def parse_args(argv):
 def main(argv):
     try:
         args = parse_args(argv)
-    except ArgumentError, e:
-        print "Error: %s" % e
+    except ArgumentError as e:
+        print("Error: %s" % e)
         return 1
 
     # Setup logging
@@ -511,7 +511,7 @@ def main(argv):
     if args.config:
         try:
             jobs, global_config = config.load_config_from_file(args.config)
-        except config.ConfigError, e:
+        except config.ConfigError as e:
             log.fatal('Error loading config file: %s' % e)
             return 1
     else:
@@ -526,18 +526,18 @@ def main(argv):
         if unknown:
             log.fatal('Error: not defined in the config file: %s' % ", ".join(unknown))
             return 1
-        jobs_to_run = dict([(n, j) for n, j in jobs.iteritems() if n in args.jobs])
+        jobs_to_run = dict([(n, j) for n, j in jobs.items() if n in args.jobs])
     else:
         jobs_to_run = jobs
 
     command = args.command(args, log)
     try:
-        for job in jobs_to_run.values():
+        for job in list(jobs_to_run.values()):
             command.run(job)
 
         for plugin in PLUGINS:
             plugin.all_jobs_done(args, global_config, args.command)
-    except TarsnapError, e:
+    except TarsnapError as e:
         log.fatal("tarsnap execution failed:\n%s" % e)
         return 1
 

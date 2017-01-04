@@ -12,7 +12,7 @@ from tarsnapper.config import parse_deltas
 
 def main(argv):
     if '-h' in argv:
-        print "./simulate.py [backup-timestamps]"
+        print("./simulate.py [backup-timestamps]")
         return 1
 
     # Do some default simulation
@@ -24,8 +24,8 @@ def main(argv):
             s.go_by(timedelta(days=1))
             s.backup()
 
-        for name, date in s.backups.iteritems():
-            print name
+        for name, date in s.backups.items():
+            print(name)
 
     # Simulate a backup with the timestamps given
     else:
@@ -33,14 +33,14 @@ def main(argv):
         s.add([d for d in argv])
         deleted, _ = s.expire()
 
-        print "Deleted backups:"
+        print("Deleted backups:")
         for name in deleted:
             print(name)
 
-        print ""
-        print "Remaining backups:"
-        for name, date in s.backups.iteritems():
-            print name
+        print("")
+        print("Remaining backups:")
+        for name, date in s.backups.items():
+            print(name)
 
 
 if __name__ == '__main__':

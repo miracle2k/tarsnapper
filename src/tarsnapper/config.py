@@ -108,7 +108,7 @@ def parse_deltas(delta_string):
             continue
         try:
             deltas.append(str_to_timedelta(item))
-        except ValueError, e:
+        except ValueError as e:
             raise ConfigError('Not a valid delta: %s' % e)
 
     if deltas and len(deltas) < 2:
@@ -118,7 +118,7 @@ def parse_deltas(delta_string):
 
 def parse_named_deltas(named_delta_dict):
     named_deltas = {}
-    for name, deltas in named_delta_dict.iteritems():
+    for name, deltas in named_delta_dict.items():
         if deltas is None:
             raise ConfigError(('%s: No deltas specified') % name)
         named_deltas[name] = parse_deltas(deltas)
@@ -200,11 +200,11 @@ def load_config(text):
         require_placeholders(new_job.target, ['date'], '%s: target')
         if job_dict:
             raise ConfigError('%s has unsupported configuration values: %s' % (
-                job_name, ", ".join(job_dict.keys())))
+                job_name, ", ".join(list(job_dict.keys()))))
         return new_job
 
     if jobs_section:
-        for job_name, job_dict in jobs_section.iteritems():
+        for job_name, job_dict in jobs_section.items():
             if job_name in read_jobs:
                 raise ConfigError('%s: duplicated job name' % job_name)
             read_jobs[job_name] = load_job(job_name, job_dict)
@@ -213,7 +213,7 @@ def load_config(text):
         for jobs_file in sorted(filter(os.path.isfile, glob.iglob(include_jobs_dir))):
             with open(jobs_file) as f:
                 jobs_file_yaml = yaml.safe_load(f)
-            for job_name, job_dict in jobs_file_yaml.iteritems():
+            for job_name, job_dict in jobs_file_yaml.items():
                 if job_name in read_jobs:
                     raise ConfigError('%s: duplicated job name' % job_name)
                 read_jobs[job_name] = load_job(job_name, job_dict)

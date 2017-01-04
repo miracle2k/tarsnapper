@@ -48,7 +48,7 @@ def expire(backups, deltas):
         return []
 
     # First, sort the backups with most recent one first
-    backups = [(name, time) for name, time in backups.items()]
+    backups = [(name, time) for name, time in list(backups.items())]
     backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
     old_backups = backups[:]
 

@@ -1,4 +1,4 @@
-from StringIO import StringIO
+from io import StringIO
 from os import path
 import re
 import shutil
@@ -31,7 +31,7 @@ class FakeBackend(TarsnapBackend):
         """Compare the calls we have captured with what the list of
         regexes in ``expect``.
         """
-        print expect_calls, '==', self.calls
+        print(expect_calls, '==', self.calls)
         if not len(expect_calls) == len(self.calls):
             return False
         for args, expected_args in zip(self.calls, expect_calls):

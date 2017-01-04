@@ -1,7 +1,7 @@
 from datetime import datetime
-from expire import expire as default_expire_func
-from config import parse_deltas
-from script import parse_date
+from .expire import expire as default_expire_func
+from .config import parse_deltas
+from .script import parse_date
 
 
 __all__ = ('BackupSimulator',)
@@ -20,7 +20,7 @@ class BackupSimulator(object):
     """
 
     def __init__(self, deltas, expire_func=default_expire_func):
-        if isinstance(deltas, basestring):
+        if isinstance(deltas, str):
             deltas = parse_deltas(deltas)
         self.deltas = deltas
         self.expire_func = expire_func
@@ -29,7 +29,7 @@ class BackupSimulator(object):
 
     def add(self, backups):
         for dt in backups:
-            if isinstance(dt, basestring):
+            if isinstance(dt, str):
                 dt = parse_date(dt)
             self.backups[str(dt)] = dt
 
@@ -47,7 +47,7 @@ class BackupSimulator(object):
     def expire(self):
         keep = self.expire_func(self.backups, self.deltas)
         deleted = []
-        for key in self.backups.keys():
+        for key in list(self.backups.keys()):
             if not key in keep:
                 deleted.append(key)
                 del self.backups[key]

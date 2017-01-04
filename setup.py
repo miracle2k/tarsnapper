@@ -25,7 +25,7 @@ version = None
 for line in fp:
     match = version_re.search(line)
     if match:
-        exec "version = %s" % match.group(1)
+        exec("version = %s" % match.group(1))
         version = ".".join(map(str, version))
         break
 else:

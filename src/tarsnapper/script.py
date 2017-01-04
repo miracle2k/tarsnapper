@@ -68,7 +68,8 @@ class TarsnapBackend(object):
         self.log.debug("Executing: %s" % " ".join(args))
         env = os.environ
         env['LANG'] = 'C' # ensure the tarsnap output is in english
-        child = pexpect.spawn(args[0], args[1:], env=env, timeout=None)
+        child = pexpect.spawn(args[0], args[1:], env=env, timeout=None,
+            encoding='utf-8')
 
         if self.log.isEnabledFor(logging.DEBUG):
             child.logfile = sys.stdout

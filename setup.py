@@ -20,7 +20,7 @@ here = os.path.dirname(os.path.abspath(__file__))
 # Figure out the version
 version_re = re.compile(
     r'__version__ = (\(.*?\))')
-fp = open(os.path.join(here, 'src/tarsnapper/__init__.py'))
+fp = open(os.path.join(here, 'tarsnapper/__init__.py'))
 version = None
 for line in fp:
     match = version_re.search(line)
@@ -43,7 +43,6 @@ setup(name='tarsnapper',
       url='http://github.com/miracle2k/tarsnapper',
       license='BSD',
       packages=['tarsnapper'],
-      package_dir = {'tarsnapper': 'src/tarsnapper'},
       install_requires = ['argparse>=1.1', 'pyyaml>=3.09', 'python-dateutil>=2.4.0', 'pexpect>=3.1'],
       **kw
 )

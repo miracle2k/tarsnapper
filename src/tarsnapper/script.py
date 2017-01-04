@@ -1,7 +1,6 @@
 import json
 import sys, os
 from os import path
-import urllib.request, urllib.error, urllib.parse
 import uuid
 import subprocess
 from io import StringIO

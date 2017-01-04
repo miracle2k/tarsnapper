@@ -22,7 +22,7 @@ class FakeBackend(TarsnapBackend):
     def _exec_tarsnap(self, args):
         self.calls.append(args[1:])  # 0 is "tarsnap"
         if '--list-archives' in args:
-            return "\n".join(self.fake_archives)
+            return u"\n".join(self.fake_archives)
 
     def _exec_util(self, cmdline):
         self.calls.append(cmdline)

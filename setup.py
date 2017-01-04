@@ -37,6 +37,8 @@ setup(name='tarsnapper',
       description="Manages tarsnap backups",
       classifiers=[
         'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3'
       ],
       author='Michael Elsdoerfer',
       author_email='michael@elsdoerfer.com',

@@ -4,7 +4,7 @@ python:
   - 3.6
 install:
   - pip install nose
-  - pip install -r requirements.pip
+  - ./setup.py develop
 script:
   - nosetests tests
 notifications:

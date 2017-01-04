@@ -74,7 +74,7 @@ class TarsnapBackend(object):
             child.logfile = sys.stdout
 
         # look for the passphrase prompt
-        has_prompt = (child.expect(['Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
+        has_prompt = (child.expect([u'Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
         if has_prompt:
             child.sendline(self._get_key_passphrase())
             child.expect(pexpect.EOF)
@@ -90,7 +90,7 @@ class TarsnapBackend(object):
         if not self.key_passphrase:
             self.key_passphrase = getpass.getpass('Passphrase for the tarsnap key: ')
         return self.key_passphrase
-        
+
     def _exec_util(self, cmdline, shell=False):
         # TODO: can this be merged with _exec_tarsnap into something generic?
         self.log.debug("Executing: %s" % cmdline)
@@ -128,7 +128,7 @@ class TarsnapBackend(object):
         """Return a dict of backups that exist for the given job, by
         parsing the list of archives.
         """
-        # Assemble regular expressions that matche the job's target
+        # Assemble regular expressions that match the job's target
         # filenames, including those based on it's aliases.
         unique = uuid.uuid4().hex
         regexes = []
@@ -280,13 +280,13 @@ class ListCommand(Command):
     def run(self, job):
         backups = self.backend.get_backups(job)
 
-        self.log.info('%s' % job.name)
+        self.log.info('%s' % (job.name or "Unnamed job"))
 
         # Sort backups by time
         # TODO: This duplicates code from the expire module. Should
         # the list of backups always be returned sorted instead?
         backups = [(name, time) for name, time in list(backups.items())]
-        backups.sort(cmp=lambda x, y: -cmp(x[1], y[1]))
+        backups.sort(key=lambda x: x[1], reverse=True)
         for backup, _ in backups:
             print("  %s" % backup)
 

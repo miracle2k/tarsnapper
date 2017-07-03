@@ -104,6 +104,9 @@ subject to the limitations thereof.
 Expiring backups
 ================
 
+Note that if you're running tarsnapper with ``make``, it will implicitly expire
+backups as well; there is no need to run ``make`` AND ``expire`` both.
+
 If you want to create the backups yourself, and are only interested in
 the expiration functionality, you can do just that::
 

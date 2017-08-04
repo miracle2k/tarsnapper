@@ -23,10 +23,36 @@ Using ``easy_install``::
     $ easy_install tarsnapper
 
 
+Making a single backup without a configuration file
+===================================================
+
+::
+    tarsnapper --target foobar-\$date --sources /etc/  --deltas 6h 7d 31d - make
+
+
+This will backup the ``/etc/`` folder every time you call this command
+(put it in cron, for example), and after each backup made, attempts to
+expire old backups to match the deltas given.
+
+Note the following:
+
+- You need to give the ``$date`` placeholder for expiration to work,
+  and you will need to escape the dollar sign in your shell.
+
+- You need to end the list of deltas with a `-` character.
+
+- ``tarsnap`` needs to be setup on your machine correctly, that is,
+  tarsnap needs to be able to find it's keyfile and so on via
+  ``tarsnap.conf``. The ability to pass through options to tarsnap
+  via the ``tarsnapper`` CLI exists, though.
+
+
 Using a configuration file
 ==========================
 
-A configuration file looks like this::
+We also support a configuration file. It allows multiple jobs to be
+defined, and has more feature, such as pre-/post job commands. It
+looks like this::
 
     # Global values, valid for all jobs unless overridden:
     # A job's delta controls when old backups are expired

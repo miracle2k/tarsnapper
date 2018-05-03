@@ -1,20 +1,20 @@
-import json
-import sys, os
-from os import path
-import uuid
-import subprocess
-from io import StringIO
-import re
-from string import Template
-from datetime import datetime, timedelta
-import logging
 import argparse
 import dateutil.parser
 import getpass
-
+import logging
+import os
 import pexpect
+import re
+import subprocess
+import sys
+import uuid
 
-from . import expire, config
+from datetime import datetime
+from io import StringIO
+from os import path
+from string import Template
+
+from . import config, expire
 from .config import Job
 
 
@@ -67,9 +67,9 @@ class TarsnapBackend(object):
     def _exec_tarsnap(self, args):
         self.log.debug("Executing: %s" % " ".join(args))
         env = os.environ
-        env['LANG'] = 'C' # ensure the tarsnap output is in english
+        env['LANG'] = 'C'  # ensure the tarsnap output is in english
         child = pexpect.spawn(args[0], args[1:], env=env, timeout=None,
-            encoding='utf-8')
+                              encoding='utf-8')
 
         if self.log.isEnabledFor(logging.DEBUG):
             child.logfile = sys.stdout
@@ -137,7 +137,7 @@ class TarsnapBackend(object):
             target = Template(job.target).substitute(
                 {'name': possible_name, 'date': unique})
             regexes.append(re.compile("^%s$" %
-                        re.escape(target).replace(unique, '(?P<date>.*?)')))
+                           re.escape(target).replace(unique, '(?P<date>.*?)')))
 
         backups = {}
         for backup_path in self.get_archives():
@@ -186,7 +186,7 @@ class TarsnapBackend(object):
         # Delete all others
         to_delete = []
         for name, _ in list(backups.items()):
-            if not name in to_keep:
+            if name not in to_keep:
                 to_delete.append(name)
 
         to_keep.sort()
@@ -333,10 +333,10 @@ class MakeCommand(ExpireCommand):
     @classmethod
     def validate_args(self, args):
         if not args.config and not args.target:
-            raise ArgumentError('Since you are not using a config file, '\
+            raise ArgumentError('Since you are not using a config file, '
                                 'you need to give --target')
         if not args.config and not args.deltas and not args.no_expire:
-            raise ArgumentError('Since you are not using a config file, and '\
+            raise ArgumentError('Since you are not using a config file, and '
                                 'have not specified --no-expire, you will '
                                 'need to give --deltas')
         if not args.config and not args.sources:
@@ -381,7 +381,7 @@ class MakeCommand(ExpireCommand):
                 self.backend.make(job)
             except Exception:
                 self.log.exception(("Something went wrong with backup job: '%s'")
-                               % job.name)
+                                   % job.name)
 
         if job.exec_after:
             self.backend._exec_util(job.exec_after)
@@ -419,14 +419,14 @@ def parse_args(argv):
     parser.add_argument('--config', '-c', help='use the given config file')
 
     group = parser.add_argument_group(
-        description='Instead of using a configuration file, you may define '\
+        description='Instead of using a configuration file, you may define '
                     'a single job on the command line:')
     group.add_argument('--target', help='target filename for the backup')
     group.add_argument('--sources', nargs='+', help='paths to backup',
-                        default=[])
+                       default=[])
     group.add_argument('--deltas', '-d', metavar='DELTA',
-                        type=timedelta_string,
-                        help='generation deltas', nargs='+')
+                       type=timedelta_string,
+                       help='generation deltas', nargs='+')
     group.add_argument('--dateformat', '-f', help='dateformat')
 
     for plugin in PLUGINS:

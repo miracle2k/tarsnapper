@@ -17,10 +17,9 @@ A wrapper around tarsnap which does two things:
 Installation
 ============
 
-Using ``easy_install``::
+Using ``pip``::
 
-    $ apt-get install python-setuptools
-    $ easy_install tarsnapper
+    $ pip install tarsnapper
 
 
 Making a single backup without a configuration file

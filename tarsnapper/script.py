@@ -38,7 +38,7 @@ class TarsnapBackend(object):
         ``options`` - options to pass to each tarsnap call
         (a list of key value pairs).
 
-        In ``dryrun`` mode, will class will only pretend to make and/or
+        In ``dryrun`` mode, the class will only pretend to make and/or
         delete backups. This is a global option rather than a method
         specific one, because once the cached list of archives is tainted
         with simulated data, you don't really want to run in non-dry mode.
@@ -65,7 +65,7 @@ class TarsnapBackend(object):
         return self._exec_tarsnap(call_with)
 
     def _exec_tarsnap(self, args):
-        self.log.debug("Executing: %s" % " ".join(args))
+        self.log.debug("Executing: %s", " ".join(args))
         env = os.environ
         child = pexpect.spawn(args[0], args[1:], env=env, timeout=None,
                               encoding='utf-8')
@@ -93,7 +93,7 @@ class TarsnapBackend(object):
 
     def _exec_util(self, cmdline, shell=False):
         # TODO: can this be merged with _exec_tarsnap into something generic?
-        self.log.debug("Executing: %s" % cmdline)
+        self.log.debug("Executing: %s", cmdline)
         p = subprocess.Popen(cmdline, shell=True)
         p.communicate()
         if p.returncode:
@@ -161,7 +161,7 @@ class TarsnapBackend(object):
                 # TODO: It'd take some work, but we could build a proper
                 # regex based on any given date format string, thus avoiding
                 # the issue for most cases.
-                self.log.error("Ignoring '%s': %s" % (backup_path, e))
+                self.log.exception("Ignoring '%s': %s", backup_path, e)
             else:
                 backups[backup_path] = date
 
@@ -176,11 +176,11 @@ class TarsnapBackend(object):
         """
 
         backups = self.get_backups(job)
-        self.log.info('%d backups are matching' % len(backups))
+        self.log.info('%d backups are matching', len(backups))
 
         # Determine which backups we need to get rid of, which to keep
         to_keep = expire.expire(backups, job.deltas)
-        self.log.info('%d of those can be deleted' % (len(backups)-len(to_keep)))
+        self.log.info('%d of those can be deleted', (len(backups)-len(to_keep)))
 
         # Delete all others
         to_delete = []
@@ -191,12 +191,12 @@ class TarsnapBackend(object):
         to_keep.sort()
         to_delete.sort()
 
-        self.log.debug('Keeping %s' % ' '.join(to_keep))
+        self.log.debug('Keeping %s', ' '.join(to_keep))
 
         if len(to_delete) == 0:
             return
 
-        self.log.info('Deleting %s' % ' '.join(to_delete))
+        self.log.info('Deleting %s', ' '.join(to_delete))
 
         if not self.dryrun:
             self.call('-d', '-f', *' -f '.join(to_delete).split(' '))
@@ -210,9 +210,9 @@ class TarsnapBackend(object):
             {'date': date_str, 'name': job.name})
 
         if job.name:
-            self.log.info('Creating backup %s: %s' % (job.name, target))
+            self.log.info('Creating backup %s: %s', job.name, target)
         else:
-            self.log.info('Creating backup: %s' % target)
+            self.log.info('Creating backup: %s', target)
 
         if not self.dryrun:
             args = ['-c']
@@ -280,7 +280,7 @@ class ListCommand(Command):
     def run(self, job):
         backups = self.backend.get_backups(job)
 
-        self.log.info('%s' % (job.name or "Unnamed job"))
+        self.log.info('%s', (job.name or "Unnamed job"))
 
         # Sort backups by time
         # TODO: This duplicates code from the expire module. Should
@@ -304,7 +304,7 @@ class ExpireCommand(Command):
 
     def expire(self, job):
         if not job.deltas:
-            self.log.info(("Skipping '%s', does not define deltas") % job.name)
+            self.log.info("Skipping '%s', does not define deltas", job.name)
             return
 
         self.backend.expire(job)
@@ -345,7 +345,7 @@ class MakeCommand(ExpireCommand):
 
     def run(self, job):
         if not job.sources:
-            self.log.info(("Skipping '%s', does not define sources") % job.name)
+            self.log.info("Skipping '%s', does not define sources", job.name)
             return
 
         if job.exec_before:
@@ -369,8 +369,8 @@ class MakeCommand(ExpireCommand):
 
         if sources_missing:
             if job.name:
-                self.log.info(("Not backing up '%s', because not all given "
-                               "sources exist") % job.name)
+                self.log.info("Not backing up '%s', because not all given "
+                               "sources exist", job.name)
             else:
                 self.log.info("Not making backup, because not all given "
                               "sources exist")
@@ -379,8 +379,8 @@ class MakeCommand(ExpireCommand):
             try:
                 self.backend.make(job)
             except Exception:
-                self.log.exception(("Something went wrong with backup job: '%s'")
-                                   % job.name)
+                self.log.exception("Something went wrong with backup job: '%s'",
+                    job.name)
 
         if job.exec_after:
             self.backend._exec_util(job.exec_after)
@@ -510,8 +510,8 @@ def main(argv):
     if args.config:
         try:
             jobs, global_config = config.load_config_from_file(args.config)
-        except config.ConfigError as e:
-            log.fatal('Error loading config file: %s' % e)
+        except config.ConfigError:
+            log.exception("Error loading config file:")
             return 1
     else:
         # Only a single job, as given on the command line
@@ -523,7 +523,7 @@ def main(argv):
     if args.jobs:
         unknown = set(args.jobs) - set(jobs.keys())
         if unknown:
-            log.fatal('Error: not defined in the config file: %s' % ", ".join(unknown))
+            log.error('Error: not defined in the config file: %s', ", ".join(unknown))
             return 1
         jobs_to_run = dict([(n, j) for n, j in jobs.items() if n in args.jobs])
     else:
@@ -536,8 +536,8 @@ def main(argv):
 
         for plugin in PLUGINS:
             plugin.all_jobs_done(args, global_config, args.command)
-    except TarsnapError as e:
-        log.fatal("tarsnap execution failed:\n%s" % e)
+    except TarsnapError:
+        log.exception("tarsnap execution failed:")
         return 1
 
 

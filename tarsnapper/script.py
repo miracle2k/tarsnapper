@@ -1,18 +1,20 @@
+from __future__ import print_function
+
 import argparse
-import dateutil.parser
+from datetime import datetime
 import getpass
+from io import StringIO
 import logging
 import os
-import pexpect
-import re
+from os import path
+from string import Template
 import subprocess
+import re
 import sys
 import uuid
 
-from datetime import datetime
-from io import StringIO
-from os import path
-from string import Template
+import dateutil.parser
+import pexpect
 
 from . import config, expire
 from .config import Job
@@ -27,7 +29,8 @@ class TarsnapError(Exception):
 
 
 class TarsnapBackend(object):
-    """The code that calls the tarsnap executable.
+    """
+    The code that calls the tarsnap executable.
 
     One of the reasons this is designed as a class is to allow the backend
     to mimimize the calls to "tarsnap --list-archives" by caching the result.

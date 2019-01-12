@@ -8,6 +8,7 @@ XXX: How should test this? What exactly should be tested?
 
 from tarsnapper.test import BackupSimulator
 
+
 def test_failing_keep():
     """This used to delete backup B, because we were first looking
     for a seven day old backup, finding A, then looking for a six day

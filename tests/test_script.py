@@ -1,15 +1,15 @@
-from io import StringIO
+import argparse
+from datetime import datetime
+import logging
 from os import path
 import re
 import shutil
 import tempfile
-import logging
-import argparse
-from datetime import datetime
+
+from tarsnapper.config import Job, parse_deltas, str_to_timedelta
 from tarsnapper.script import (
     TarsnapBackend, MakeCommand, ListCommand, ExpireCommand, parse_args,
     DEFAULT_DATEFORMAT)
-from tarsnapper.config import Job, parse_deltas, str_to_timedelta
 
 
 class FakeBackend(TarsnapBackend):
@@ -175,7 +175,6 @@ class TestExpire(BaseTest):
             self.filename('5d'),
         ])
         assert cmd.backend.match([])
-
 
     def test_something_to_expire(self):
         cmd = self.run(self.job(deltas='1d 2d'), [

@@ -187,7 +187,7 @@ class TarsnapBackend(object):
 
         # Delete all others
         to_delete = []
-        for name, _ in list(backups.items()):
+        for name in backups.keys():
             if name not in to_keep:
                 to_delete.append(name)
 
@@ -292,15 +292,12 @@ class ListCommand(Command):
     description = 'For each job, output a sorted list of existing backups.'
 
     def run(self, job):
-        backups = self.backend.get_backups(job)
-
         self.log.info('%s', (job.name or "Unnamed job"))
-
+        unsorted_backups = self.backend.get_backups(job).items()
         # Sort backups by time
         # TODO: This duplicates code from the expire module. Should
         # the list of backups always be returned sorted instead?
-        backups = [(name, time) for name, time in list(backups.items())]
-        backups.sort(key=lambda x: x[1], reverse=True)
+        backups = sorted(unsorted_backups, key=lambda x: x[1], reverse=True)
         for backup, _ in backups:
             print("  %s" % backup)
 
@@ -545,7 +542,7 @@ def main(argv):
 
     command = args.command(args, log)
     try:
-        for job in list(jobs_to_run.values()):
+        for job in jobs_to_run.values():
             command.run(job)
 
         for plugin in PLUGINS:

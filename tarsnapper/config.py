@@ -204,7 +204,7 @@ def load_config(text):
         require_placeholders(new_job.target, ['date'], '%s: target')
         if job_dict:
             raise ConfigError('%s has unsupported configuration values: %s' % (
-                job_name, ", ".join(list(job_dict.keys()))))
+                job_name, ", ".join(job_dict.keys())))
         return new_job
 
     if jobs_section:

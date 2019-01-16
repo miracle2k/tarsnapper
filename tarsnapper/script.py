@@ -199,9 +199,20 @@ class TarsnapBackend(object):
         self.log.info('Deleting %s', ' '.join(to_delete))
 
         if not self.dryrun:
-            self.call('-d', '-f', *' -f '.join(to_delete).split(' '))
-            for name in to_delete:
-                self.archives.remove(name)
+            # group into batches of up to 500 files in a single delete call for
+            # improved efficiency: https://www.tarsnap.com/improve-speed.html#faster-delete
+            # 500 is a somewhat arbitrary batch size. The actual restriction is
+            # typically a bytes limit on the size of the command that the shell
+            # will accept, which can vary widely across OS flavors. Because
+            # it's a bytes limit, this is also dependent on the length of the
+            # backup filenames. So rather than deal with all this complexity,
+            # 500 was chosen as a reasonable balance between safety and speed.
+            batch_size = 500
+            for i in range(0, len(to_delete), batch_size):
+                batch = to_delete[i:i + batch_size]
+                self.call('-d', '-f', *' -f '.join(batch).split(' '))
+                for name in batch:
+                    self.archives.remove(name)
 
     def make(self, job):
         now = datetime.utcnow()

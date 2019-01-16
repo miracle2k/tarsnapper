@@ -1,6 +1,5 @@
-==========
 Tarsnapper
-==========
+=========
 
 A wrapper around tarsnap which does two things:
 
@@ -17,7 +16,7 @@ A wrapper around tarsnap which does two things:
 Installation
 ============
 
-Using ``pip``::
+Using ``pip``:
 
     $ pip install tarsnapper
 
@@ -25,9 +24,9 @@ Using ``pip``::
 Making a single backup without a configuration file
 ===================================================
 
-::
-    tarsnapper --target foobar-\$date --sources /etc/  --deltas 6h 7d 31d - make
-
+```sh
+tarsnapper --target foobar-\$date --sources /etc/  --deltas 6h 7d 31d - make
+```
 
 This will backup the ``/etc/`` folder every time you call this command
 (put it in cron, for example), and after each backup made, attempts to
@@ -51,43 +50,45 @@ Using a configuration file
 
 We also support a configuration file. It allows multiple jobs to be
 defined, and has more feature, such as pre-/post job commands. It
-looks like this::
+looks like this:
 
-    # Global values, valid for all jobs unless overridden:
-    # A job's delta controls when old backups are expired
-    # (see "How expiring backups works" below)
-    deltas: 1d 7d 30d
-    # You can avoid repetition by giving deltas names
-    delta-names:
-      super-important: 1h 1d 30d 90d 360d
-    # A job's target sets the name of the created archive
-    target: /localmachine/$name-$date
-    # You can also include jobs from separate files
-    include-jobs: /usr/local/etc/tarsnapper/*.yml
+```yaml
+# Global values, valid for all jobs unless overridden:
+# A job's delta controls when old backups are expired
+# (see "How expiring backups works" below)
+deltas: 1d 7d 30d
+# You can avoid repetition by giving deltas names
+delta-names:
+  super-important: 1h 1d 30d 90d 360d
+# A job's target sets the name of the created archive
+target: /localmachine/$name-$date
+# You can also include jobs from separate files
+include-jobs: /usr/local/etc/tarsnapper/*.yml
 
-    jobs:
-      # define a job called images (names must be unique)
-      images:
-        source: /var/lib/mysql
-        exclude: /var/lib/mysql/temp
-        exec_before: service mysql stop
-        exec_after: service mysql start
-        # Aliases can be used when renaming a job to match old archives.
-        alias: img
+jobs:
+  # define a job called images (names must be unique)
+  images:
+    source: /var/lib/mysql
+    exclude: /var/lib/mysql/temp
+    exec_before: service mysql stop
+    exec_after: service mysql start
+    # Aliases can be used when renaming a job to match old archives.
+    alias: img
 
-      some-other-job:
-        sources:
-          - /var/dir/1
-          - /etc/google
-        excludes:
-          - /etc/google/cache
-        target: /custom-target-$date.zip
-        deltas: 1h 6h 1d 7d 24d 180d
+  some-other-job:
+    sources:
+      - /var/dir/1
+      - /etc/google
+    excludes:
+      - /etc/google/cache
+    target: /custom-target-$date.zip
+    deltas: 1h 6h 1d 7d 24d 180d
+```
 
 For the ``images`` job, the global target will be used, with the ``name``
 placeholder replaced by the backup job name, in this case ``images``.
 
-You can then ask tarsnapper to create new backups for each job::
+You can then ask tarsnapper to create new backups for each job:
 
     $ tarsnapper -c myconfigfile make
 
@@ -95,11 +96,11 @@ The name of the archive will be the ``target`` option, with the ``$date``
 placeholder replaced by the current timestamp, using either the
 ``dateformat`` option, or ``%Y%m%d-%H%M%S``.
 
-Or to expire those archives no longer needed, as per the chosen deltas::
+Or to expire those archives no longer needed, as per the chosen deltas:
 
-  $ tarsnapper -c myconfigfile expire
+    $ tarsnapper -c myconfigfile expire
 
-If you need to pass arguments through to tarsnap, you can do this as well::
+If you need to pass arguments through to tarsnap, you can do this as well:
 
     $ tarsnapper -o configfile tarsnap.conf -o v -c tarsnapper.conf make
 
@@ -108,23 +109,22 @@ This will use ``tarsnap.conf`` as the tarsnap configuration file,
 put tarsnap into verbose mode via the ``-v`` flag.
 
 Using the ``include-jobs`` option, you could insert 1 or more jobs in (for
-example) ``/usr/local/etc/tarsnapper/extra-backup-jobs.yml``::
+example) ``/usr/local/etc/tarsnapper/extra-backup-jobs.yml``:
 
-      # Included jobs act just like jobs in the main config file, so for
-      # example the default target is active and named deltas are
-      # available, and job names must still be globally unique.
-      yet-another-job:
-        source: /var/dir/2
-        deltas: 1h 1d 30d
+```yaml
+# Included jobs act just like jobs in the main config file, so for
+# example the default target is active and named deltas are
+# available, and job names must still be globally unique.
+yet-another-job:
+  source: /var/dir/2
+  deltas: 1h 1d 30d
 
-      an-important-job:
-        source: /var/something-important
-        delta: super-important
+an-important-job:
+  source: /var/something-important
+  delta: super-important
+```
 
-``include-jobs`` uses `Python's globbing`_ to find job files and hence is
-subject to the limitations thereof.
-
-.. _Python's globbing: https://docs.python.org/2/library/glob.html
+``include-jobs`` uses [Python's globbing](https://docs.python.org/2/library/glob.html) to find job files and hence is subject to the limitations thereof.
 
 Expiring backups
 ================
@@ -133,7 +133,7 @@ Note that if you're running tarsnapper with ``make``, it will implicitly expire
 backups as well; there is no need to run ``make`` AND ``expire`` both.
 
 If you want to create the backups yourself, and are only interested in
-the expiration functionality, you can do just that::
+the expiration functionality, you can do just that:
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire
 
@@ -157,7 +157,7 @@ Note the single "-" that needs to be given between the ``--deltas``
 argument and the command.
 
 The ``expire`` command supports a ``--dry-run`` argument that will allow
-you to see what would be deleted::
+you to see what would be deleted:
 
     $ tarsnapper --target "foobar-\$date" --deltas 1d 7d 30d - expire --dry-run
 
@@ -193,7 +193,7 @@ The most recent backup is always kept.
 
 As an example, here is a list of backups from a Desktop computer that has
 often been running non-stop for days, but also has on occasion been turned
-off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``::
+off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``:
 
       dropbox-20140424-054252
       dropbox-20140423-054120
@@ -215,4 +215,4 @@ off for weeks at a time, using the deltas ``1d 7d 30d 360d 18000d``::
       dropbox-20130511-055537
       dropbox-20130312-064042
       dropbox-20120325-054505
-      dropbox-20110331-121745
+      dropbox-20110331-12174

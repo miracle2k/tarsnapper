@@ -1,17 +1,16 @@
 from datetime import datetime
-from .expire import expire as default_expire_func
-from .config import parse_deltas
-from .script import parse_date
-
-
-__all__ = ('BackupSimulator',)
-
-
 try:
     from collections import OrderedDict    # Python 2.7
 except ImportError:
     # Install from: http://pypi.python.org/pypi/ordereddict
     from ordereddict import OrderedDict
+
+from .config import parse_deltas
+from .expire import expire as default_expire_func
+from .script import parse_date
+
+
+__all__ = ('BackupSimulator',)
 
 
 class BackupSimulator(object):

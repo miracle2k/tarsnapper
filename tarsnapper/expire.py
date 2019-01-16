@@ -1,5 +1,4 @@
 import operator
-from datetime import datetime, timedelta
 
 
 __all__ = ('expire',)

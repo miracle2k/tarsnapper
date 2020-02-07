@@ -179,7 +179,7 @@ The design goals for this were as follows:
   have actually run or will run, but try to match the given deltas as
   closely as possible.
 
-The generations are defined by a list of deltas. ``60`` means a minute,
+The generations are defined by a list of deltas. ``60s`` means a minute,
 ``12h`` is half a day, ``7d`` is a week. The number of backups in each
 generation is implied by it's and the parent generation's delta.
 

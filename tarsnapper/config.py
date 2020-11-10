@@ -182,9 +182,9 @@ def load_config(text):
             if delta_name not in named_deltas:
                 raise ConfigError(('%s: Named delta "%s" not defined')
                                   % (job_name, delta_name))
-            deltas = named_deltas[delta_name]
+            deltas = list(named_deltas[delta_name])
         else:
-            deltas = parse_deltas(job_dict.pop('deltas', None)) or default_deltas
+            deltas = parse_deltas(job_dict.pop('deltas', None)) or list(default_deltas)
         new_job = Job(**{
             'name': job_name,
             'sources': sources,

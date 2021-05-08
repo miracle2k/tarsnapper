@@ -184,7 +184,9 @@ def load_config(text):
                                   % (job_name, delta_name))
             deltas = list(named_deltas[delta_name])
         else:
-            deltas = parse_deltas(job_dict.pop('deltas', None)) or list(default_deltas)
+            deltas = parse_deltas(job_dict.pop('deltas', None))
+            if deltas is None and default_deltas is not None:
+                deltas = list(default_deltas)
         new_job = Job(**{
             'name': job_name,
             'sources': sources,

@@ -71,7 +71,7 @@ class TarsnapBackend(object):
         self.log.debug("Executing: %s", " ".join(args))
         env = os.environ
         child = pexpect.spawn(args[0], args[1:], env=env, timeout=None,
-                              encoding='utf-8')
+                              encoding='utf-8', codec_errors='ignore')
 
         if self.log.isEnabledFor(logging.DEBUG):
             child.logfile = sys.stdout

@@ -11,6 +11,13 @@ from tarsnapper.script import (
     TarsnapBackend, MakeCommand, ListCommand, ExpireCommand, parse_args,
     DEFAULT_DATEFORMAT)
 
+def assertAllSucceeded(results):
+    for result in results:
+        assert result.success
+
+def assertAllFailed(results):
+    for result in results:
+        assert not result.success
 
 class FakeBackend(TarsnapBackend):
 
@@ -66,9 +73,10 @@ class BaseTest(object):
         cmd = self.command_class(argparse.Namespace(**final_args),
                                  self.log, backend_class=FakeBackend)
         cmd.backend.fake_archives = archives
+        results = []
         for job in (jobs if isinstance(jobs, list) else [jobs]):
-            cmd.run(job)
-        return cmd
+            results.append(cmd.run(job))
+        return (cmd, results)
 
     def job(self, deltas='1d 2d', name='test', **kwargs):
         """Make a job object.
@@ -98,19 +106,23 @@ class TestTarsnapOptions(BaseTest):
 
     def test_pass_along(self):
         # Short option
-        cmd = self.run(self.job(), [], tarsnap_options=(('o', '1'),))
+        (cmd, results) = self.run(self.job(), [], tarsnap_options=(('o', '1'),))
+        assertAllSucceeded(results)
         assert cmd.backend.match([('-o', '1', '--list-archives')])
 
         # Long option
-        cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1'),))
+        (cmd, results) = self.run(self.job(), [], tarsnap_options=(('foo', '1'),))
+        assertAllSucceeded(results)
         assert cmd.backend.match([('--foo', '1', '--list-archives')])
 
         # No value
-        cmd = self.run(self.job(), [], tarsnap_options=(('foo',),))
+        (cmd, results) = self.run(self.job(), [], tarsnap_options=(('foo',),))
+        assertAllSucceeded(results)
         assert cmd.backend.match([('--foo', '--list-archives')])
 
         # Multiple values
-        cmd = self.run(self.job(), [], tarsnap_options=(('foo', '1', '2'),))
+        (cmd, results) = self.run(self.job(), [], tarsnap_options=(('foo', '1', '2'),))
+        assertAllSucceeded(results)
         assert cmd.backend.match([('--foo', '1', '2', '--list-archives')])
 
 
@@ -119,7 +131,8 @@ class TestMake(BaseTest):
     command_class = MakeCommand
 
     def test(self):
-        cmd = self.run(self.job(), [])
+        (cmd, results) = self.run(self.job(), [])
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('-c', '-f', 'test-.*', '.*'),
             ('--list-archives',)
@@ -127,18 +140,21 @@ class TestMake(BaseTest):
 
     def test_no_sources(self):
         """If no sources are defined, the job is skipped."""
-        cmd = self.run(self.job(sources=None), [])
+        (cmd, results) = self.run(self.job(sources=None), [])
+        assertAllFailed(results)
         assert cmd.backend.match([])
 
     def test_excludes(self):
-        cmd = self.run(self.job(excludes=['foo']), [])
+        (cmd, results) = self.run(self.job(excludes=['foo']), [])
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('-c', '--exclude', 'foo', '-f', 'test-.*', '.*'),
             ('--list-archives',)
         ])
 
     def test_no_expire(self):
-        cmd = self.run(self.job(), [], no_expire=True)
+        (cmd, results) = self.run(self.job(), [], no_expire=True)
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('-c', '-f', 'test-.*', '.*'),
         ])
@@ -146,8 +162,9 @@ class TestMake(BaseTest):
     def test_exec(self):
         """Test ``exec_before`` and ``exec_after`` options.
         """
-        cmd = self.run(self.job(exec_before="echo begin", exec_after="echo end"),
+        (cmd, results) = self.run(self.job(exec_before="echo begin", exec_after="echo end"),
                        [], no_expire=True)
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('echo begin'),
             ('-c', '-f', 'test-.*', '.*'),
@@ -160,24 +177,26 @@ class TestExpire(BaseTest):
     command_class = ExpireCommand
 
     def test_nothing_to_do(self):
-        cmd = self.run(self.job(deltas='1d 10d'), [
+        (cmd, results) = self.run(self.job(deltas='1d 10d'), [
             self.filename('1d'),
             self.filename('5d'),
         ])
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('--list-archives',)
         ])
 
     def test_no_deltas(self):
         """If a job does not define deltas, we skip it."""
-        cmd = self.run(self.job(deltas=None), [
+        (cmd, results) = self.run(self.job(deltas=None), [
             self.filename('1d'),
             self.filename('5d'),
         ])
+        assertAllFailed(results)
         assert cmd.backend.match([])
 
     def test_something_to_expire(self):
-        cmd = self.run(self.job(deltas='1d 2d'), [
+        (cmd, results) = self.run(self.job(deltas='1d 2d'), [
             self.filename('1d'),
             self.filename('5d'),
         ])
@@ -187,10 +206,11 @@ class TestExpire(BaseTest):
         ])
 
     def test_aliases(self):
-        cmd = self.run(self.job(deltas='1d 2d', aliases=['alias']), [
+        (cmd, results) = self.run(self.job(deltas='1d 2d', aliases=['alias']), [
             self.filename('1d'),
             self.filename('5d', name='alias'),
         ])
+        assertAllSucceeded(results)
         assert cmd.backend.match([
             ('--list-archives',),
             ('-d', '-f', 'alias-.*'),
@@ -201,9 +221,10 @@ class TestExpire(BaseTest):
         we won't stumble over "home-dev-$date". This can be an issue
         due to the way we try to parse the dates in filenames.
         """
-        cmd = self.run(self.job(name="home"), [
+        (cmd, results) = self.run(self.job(name="home"), [
             self.filename('1d', name="home-dev"),
         ])
+        assertAllSucceeded(results)
 
 
 class TestList(BaseTest):
@@ -211,12 +232,13 @@ class TestList(BaseTest):
     command_class = ListCommand
 
     def test(self):
-        cmd = self.run([self.job(), self.job(name='foo')], [
+        (cmd, results) = self.run([self.job(), self.job(name='foo')], [
             self.filename('1d'),
             self.filename('5d'),
             self.filename('1d', name='foo'),
             self.filename('1d', name='something-else'),
         ])
+        assertAllSucceeded(results)
         # We ask to list two jobs, but only one --list-archives call is
         # necessary.
         assert cmd.backend.match([

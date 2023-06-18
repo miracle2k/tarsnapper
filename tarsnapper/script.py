@@ -262,6 +262,27 @@ def timedelta_string(value):
     except ValueError as e:
         raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
+class Result(object):
+    def __init__(self, success, error=None):
+        if success != (error is None):
+            raise ValueError("If success is True, error must be None")
+        self.success = success
+        self.error = error
+
+    def __str__(self):
+        if self.success:
+            return "Success"
+        else:
+            return "Error: %s" % self.error
+
+    @classmethod
+    def Failure(self, error=''):
+        return Result(success=False, error=error)
+
+    @classmethod
+    def Success(self):
+        return Result(success=True)
+
 
 class Command(object):
 
@@ -300,6 +321,7 @@ class ListCommand(Command):
         backups = sorted(unsorted_backups, key=lambda x: x[1], reverse=True)
         for backup, _ in backups:
             print("  %s" % backup)
+        return Result.Success()
 
 
 class ExpireCommand(Command):
@@ -316,12 +338,13 @@ class ExpireCommand(Command):
     def expire(self, job):
         if not job.deltas:
             self.log.info("Skipping '%s', does not define deltas", job.name)
-            return
+            return Result.Failure("Skipped %s" % job.name)
 
         self.backend.expire(job)
+        return Result.Success()
 
     def run(self, job):
-        self.expire(job)
+        return self.expire(job)
 
 
 class MakeCommand(ExpireCommand):
@@ -357,7 +380,7 @@ class MakeCommand(ExpireCommand):
     def run(self, job):
         if not job.sources:
             self.log.info("Skipping '%s', does not define sources", job.name)
-            return
+            return Result.Failure("Skipped '%s'" % job.name)
 
         if job.exec_before:
             self.backend._exec_util(job.exec_before)
@@ -390,6 +413,7 @@ class MakeCommand(ExpireCommand):
             try:
                 self.backend.make(job)
             except Exception:
+                skipped = True
                 self.log.exception("Something went wrong with backup job: '%s'",
                     job.name)
 
@@ -400,6 +424,11 @@ class MakeCommand(ExpireCommand):
         # backup, or if expire was explicitly requested.
         if not skipped and not self.args.no_expire:
             self.expire(job)
+
+        if skipped:
+            return Result.Failure("Skipped '%s'" % job.name)
+        else:
+            return Result.Success()
 
 
 COMMANDS = {
@@ -541,14 +570,20 @@ def main(argv):
         jobs_to_run = jobs
 
     command = args.command(args, log)
+    results = []
     try:
         for job in jobs_to_run.values():
-            command.run(job)
+            results.append(command.run(job))
 
         for plugin in PLUGINS:
             plugin.all_jobs_done(args, global_config, args.command)
     except TarsnapError:
         log.exception("tarsnap execution failed:")
+        return 1
+
+    if all([result.success for result in results]):
+        return 0
+    else:
         return 1
 
 

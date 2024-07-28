@@ -38,7 +38,6 @@ file looks like this:
       source: /important-2/
       delta: important
 """
-from __future__ import print_function
 
 from datetime import timedelta
 import glob
@@ -55,7 +54,7 @@ class ConfigError(Exception):
     pass
 
 
-class Job(object):
+class Job:
     """Represent a single backup job."""
 
     def __init__(self, **initial):
@@ -205,7 +204,7 @@ def load_config(text):
         # can only be used for selected commands, then.
         require_placeholders(new_job.target, ['date'], '%s: target')
         if job_dict:
-            raise ConfigError('%s has unsupported configuration values: %s' % (
+            raise ConfigError('{} has unsupported configuration values: {}'.format(
                 job_name, ", ".join(job_dict.keys())))
         return new_job
 

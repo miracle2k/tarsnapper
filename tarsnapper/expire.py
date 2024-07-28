@@ -55,7 +55,7 @@ def expire(backups, deltas):
 
     # Always keep the most recent backup
     most_recent_backup = backups[0][1]
-    to_keep = set([backups[0][0]])
+    to_keep = {backups[0][0]}
 
     # Then, for each delta/generation, determine which backup to keep
     last_delta = deltas.pop()

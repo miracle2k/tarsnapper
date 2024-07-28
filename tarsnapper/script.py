@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import argparse
 from datetime import datetime
 import getpass
@@ -28,7 +26,7 @@ class TarsnapError(Exception):
     pass
 
 
-class TarsnapBackend(object):
+class TarsnapBackend:
     """
     The code that calls the tarsnap executable.
 
@@ -61,7 +59,7 @@ class TarsnapBackend(object):
         for option in self.options:
             key = option[0]
             pre = "-" if len(key) == 1 else "--"
-            call_with.append("%s%s" % (pre, key))
+            call_with.append("{}{}".format(pre, key))
             for value in option[1:]:
                 call_with.append(value)
         call_with.extend(arguments)
@@ -77,7 +75,7 @@ class TarsnapBackend(object):
             child.logfile = sys.stdout
 
         # look for the passphrase prompt
-        has_prompt = (child.expect([u'Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
+        has_prompt = (child.expect(['Please enter passphrase for keyfile .*?:', pexpect.EOF]) == 0)
         if has_prompt:
             child.sendline(self._get_key_passphrase())
             child.expect(pexpect.EOF)
@@ -85,7 +83,7 @@ class TarsnapBackend(object):
         child.close()
 
         if child.exitstatus != 0:
-            raise TarsnapError("tarsnap failed with status {0}:{1}{2}".format(
+            raise TarsnapError("tarsnap failed with status {}:{}{}".format(
                         child.exitstatus, os.linesep, out))
         return out
 
@@ -100,7 +98,7 @@ class TarsnapBackend(object):
         p = subprocess.Popen(cmdline, shell=True)
         p.communicate()
         if p.returncode:
-            raise RuntimeError('%s failed with exit code %s' % (
+            raise RuntimeError('{} failed with exit code {}'.format(
                 cmdline, p.returncode))
 
     def _add_known_archive(self, name):
@@ -263,7 +261,7 @@ def timedelta_string(value):
         raise argparse.ArgumentTypeError('invalid delta value: %r (suffix d, s allowed)' % e)
 
 
-class Command(object):
+class Command:
 
     BackendClass = TarsnapBackend
 
@@ -536,7 +534,7 @@ def main(argv):
         if unknown:
             log.error('Error: not defined in the config file: %s', ", ".join(unknown))
             return 1
-        jobs_to_run = dict([(n, j) for n, j in jobs.items() if n in args.jobs])
+        jobs_to_run = {n: j for n, j in jobs.items() if n in args.jobs}
     else:
         jobs_to_run = jobs
 

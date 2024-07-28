@@ -22,7 +22,7 @@ class FakeBackend(TarsnapBackend):
     def _exec_tarsnap(self, args):
         self.calls.append(args[1:])  # 0 is "tarsnap"
         if '--list-archives' in args:
-            return u"\n".join(self.fake_archives)
+            return "\n".join(self.fake_archives)
 
     def _exec_util(self, cmdline):
         self.calls.append(cmdline)
@@ -44,7 +44,7 @@ class FakeBackend(TarsnapBackend):
         return True
 
 
-class BaseTest(object):
+class BaseTest:
 
     def setup(self):
         self.log = logging.getLogger("test_script")

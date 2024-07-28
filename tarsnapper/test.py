@@ -13,7 +13,7 @@ from .script import parse_date
 __all__ = ('BackupSimulator',)
 
 
-class BackupSimulator(object):
+class BackupSimulator:
     """Helper to simulate making backups, and expire old ones, at
     various points in time.
     """

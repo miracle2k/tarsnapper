@@ -1,14 +1,16 @@
-from nose.tools import assert_raises
+import pytest
 
 from tarsnapper.config import load_config, ConfigError
 
 
 def test_empty_config():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     deltas: 1d 2d
     jobs:
     """)
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+       load_config("""
     deltas: 1d 2d
     """)
 
@@ -58,7 +60,8 @@ def test_no_sources():
 
 
 def test_no_target():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     jobs:
       foo:
         deltas: 1d 2d 3d
@@ -106,7 +109,8 @@ def test_global_deltas():
 
 
 def test_target_has_name():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $date
     jobs:
       foo:
@@ -125,14 +129,16 @@ def test_target_has_name():
 
 
 def test_target_has_date():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name
     jobs:
       foo:
         sources: /etc
         deltas: 1d 2d
     """)
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     jobs:
       foo:
         target: $name
@@ -158,7 +164,8 @@ def test_dateformat_inheritance():
 
 
 def test_unsupported_keys():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     jobs:
       foo:
         target: $date
@@ -180,7 +187,8 @@ def test_single_source():
 
 def test_source_and_sources():
     """You can't use both options at the same time."""
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     deltas: 1d 2d
     jobs:
@@ -194,7 +202,8 @@ def test_source_and_sources():
 
 def test_alias_and_aliases():
     """You can't use both options at the same time."""
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     deltas: 1d 2d
     jobs:
@@ -208,7 +217,8 @@ def test_alias_and_aliases():
 
 def test_exclude_and_excludes():
     """You can't use both options at the same time."""
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     deltas: 1d 2d
     jobs:
@@ -243,7 +253,8 @@ def test_named_delta():
 
 
 def test_unspecified_named_delta():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     delta-names:
       myDelta:
@@ -255,7 +266,8 @@ def test_unspecified_named_delta():
 
 
 def test_undefined_named_delta():
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     delta-names:
       myDelta: 1d 7d 30d
@@ -268,7 +280,8 @@ def test_undefined_named_delta():
 
 def test_named_delta_and_deltas():
     """You can't use both named delta and deltas at the same time."""
-    assert_raises(ConfigError, load_config, """
+    with pytest.raises(ConfigError):
+        load_config("""
     target: $name-$date
     delta-names:
       myDelta: 1d 7d 30d

@@ -46,7 +46,7 @@ class FakeBackend(TarsnapBackend):
 
 class BaseTest(object):
 
-    def setup(self):
+    def setup_method(self):
         self.log = logging.getLogger("test_script")
         self._tmpdir = tempfile.mkdtemp()
         # We need at least a file for tarsnapper to consider a source
@@ -54,7 +54,7 @@ class BaseTest(object):
         open(path.join(self._tmpdir, '.placeholder'), 'w').close()
         self.now = datetime.utcnow()
 
-    def teardown(self):
+    def teardown_method(self):
         shutil.rmtree(self._tmpdir)
 
     def run(self, jobs, archives, **args):
